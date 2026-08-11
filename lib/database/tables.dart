@@ -66,3 +66,15 @@ class Faturas extends Table {
 
   DateTimeColumn get dataPagamento => dateTime().nullable()();
 }
+
+class PagamentosFaturas extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get faturaId => integer()();
+
+  IntColumn get contaId => integer()();
+
+  RealColumn get valor => real()();
+
+  DateTimeColumn get data => dateTime()();
+}

@@ -15,11 +15,11 @@ class ContaRepository {
     return db.select(db.contas).watch();
   }
 
-  Future<int> salvar(ContasCompanion conta) {
+  Future salvar(ContasCompanion conta) {
     return db.into(db.contas).insert(conta);
   }
 
-  Future<int> atualizar({
+  Future atualizar({
     required int id,
     required String nome,
     required double saldoInicial,
@@ -36,7 +36,7 @@ class ContaRepository {
     );
   }
 
-  Future<int> excluir(int id) {
+  Future excluir(int id) {
     return (db.delete(db.contas)
           ..where((t) => t.id.equals(id)))
         .go();
@@ -55,6 +55,13 @@ class ContaRepository {
           ))
         .get();
 
+    final pagamentos = await (db.select(
+      db.pagamentosFaturas,
+    )..where(
+        (t) => t.contaId.equals(contaId),
+      ))
+        .get();
+
     double saldo = conta.saldoInicial;
 
     for (final lancamento in lancamentos) {
@@ -63,6 +70,10 @@ class ContaRepository {
       } else {
         saldo -= lancamento.valor;
       }
+    }
+
+    for (final pagamento in pagamentos) {
+      saldo -= pagamento.valor;
     }
 
     return saldo;

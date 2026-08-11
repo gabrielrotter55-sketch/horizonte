@@ -5,6 +5,7 @@ import '../../../database/database_service.dart';
 import '../../../repositories/cartao_repository.dart';
 import '../../../repositories/fatura_repository.dart';
 import '../../../shared/utils/formatters.dart';
+import 'detalhes_fatura_page.dart';
 
 class FaturasPage extends StatelessWidget {
   FaturasPage({super.key});
@@ -66,7 +67,7 @@ class FaturasPage extends StatelessWidget {
                 cartao.fechamento,
               );
 
-              return FutureBuilder(
+              return FutureBuilder<_DadosFatura>(
                 future: _carregarFatura(
                   cartao.id,
                   mesReferencia,
@@ -96,8 +97,11 @@ class FaturasPage extends StatelessWidget {
                     );
                   }
 
-                  final dados =
-                      faturaSnapshot.data!;
+                  if (!faturaSnapshot.hasData) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final dados = faturaSnapshot.data!;
 
                   return Card(
                     margin: const EdgeInsets.only(
@@ -182,18 +186,19 @@ class FaturasPage extends StatelessWidget {
                               borderRadius:
                                   BorderRadius.circular(12),
                               color: dados.fatura.paga
-                                  ? Colors.green
-                                      .withValues(alpha: 0.1)
-                                  : Colors.orange
-                                      .withValues(alpha: 0.1),
+                                  ? Colors.green.withValues(
+                                      alpha: 0.1,
+                                    )
+                                  : Colors.orange.withValues(
+                                      alpha: 0.1,
+                                    ),
                             ),
                             child: Row(
                               children: [
                                 Icon(
                                   dados.fatura.paga
                                       ? Icons.check_circle
-                                      : Icons
-                                          .schedule,
+                                      : Icons.schedule,
                                   color: dados.fatura.paga
                                       ? Colors.green
                                       : Colors.orange,
@@ -221,8 +226,15 @@ class FaturasPage extends StatelessWidget {
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               onPressed: () {
-                                // Vamos implementar os
-                                // detalhes da fatura depois.
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        DetalhesFaturaPage(
+                                      fatura: dados.fatura,
+                                    ),
+                                  ),
+                                );
                               },
                               icon: const Icon(
                                 Icons.receipt_long,
@@ -250,7 +262,8 @@ class FaturasPage extends StatelessWidget {
     _Referencia referencia,
   ) async {
     var fatura =
-        await faturaRepository.buscarPorCartaoEReferencia(
+        await faturaRepository
+            .buscarPorCartaoEReferencia(
       cartaoId: cartaoId,
       mes: referencia.mes,
       ano: referencia.ano,
@@ -263,7 +276,8 @@ class FaturasPage extends StatelessWidget {
         ano: referencia.ano,
       );
 
-      fatura = await faturaRepository.buscarPorId(id);
+      fatura =
+          await faturaRepository.buscarPorId(id);
     }
 
     if (fatura == null) {

@@ -16,13 +16,14 @@ part 'app_database.g.dart';
     Cartoes,
     Lancamentos,
     Faturas,
+    PagamentosFaturas,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -38,6 +39,10 @@ class AppDatabase extends _$AppDatabase {
         if (from < 4) {
           await m.createTable(faturas);
         }
+
+        if (from < 5) {
+          await m.createTable(pagamentosFaturas);
+        }
       },
     );
   }
@@ -45,7 +50,8 @@ class AppDatabase extends _$AppDatabase {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir =
+        await getApplicationDocumentsDirectory();
 
     final file = File(
       p.join(dir.path, 'horizonte.db'),

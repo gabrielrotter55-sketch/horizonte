@@ -1923,6 +1923,349 @@ class FaturasCompanion extends UpdateCompanion<Fatura> {
   }
 }
 
+class $PagamentosFaturasTable extends PagamentosFaturas
+    with TableInfo<$PagamentosFaturasTable, PagamentosFatura> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PagamentosFaturasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _faturaIdMeta = const VerificationMeta(
+    'faturaId',
+  );
+  @override
+  late final GeneratedColumn<int> faturaId = GeneratedColumn<int>(
+    'fatura_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contaIdMeta = const VerificationMeta(
+    'contaId',
+  );
+  @override
+  late final GeneratedColumn<int> contaId = GeneratedColumn<int>(
+    'conta_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valorMeta = const VerificationMeta('valor');
+  @override
+  late final GeneratedColumn<double> valor = GeneratedColumn<double>(
+    'valor',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataMeta = const VerificationMeta('data');
+  @override
+  late final GeneratedColumn<DateTime> data = GeneratedColumn<DateTime>(
+    'data',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, faturaId, contaId, valor, data];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pagamentos_faturas';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PagamentosFatura> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('fatura_id')) {
+      context.handle(
+        _faturaIdMeta,
+        faturaId.isAcceptableOrUnknown(data['fatura_id']!, _faturaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_faturaIdMeta);
+    }
+    if (data.containsKey('conta_id')) {
+      context.handle(
+        _contaIdMeta,
+        contaId.isAcceptableOrUnknown(data['conta_id']!, _contaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contaIdMeta);
+    }
+    if (data.containsKey('valor')) {
+      context.handle(
+        _valorMeta,
+        valor.isAcceptableOrUnknown(data['valor']!, _valorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valorMeta);
+    }
+    if (data.containsKey('data')) {
+      context.handle(
+        _dataMeta,
+        this.data.isAcceptableOrUnknown(data['data']!, _dataMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PagamentosFatura map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PagamentosFatura(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      faturaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fatura_id'],
+      )!,
+      contaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}conta_id'],
+      )!,
+      valor: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}valor'],
+      )!,
+      data: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}data'],
+      )!,
+    );
+  }
+
+  @override
+  $PagamentosFaturasTable createAlias(String alias) {
+    return $PagamentosFaturasTable(attachedDatabase, alias);
+  }
+}
+
+class PagamentosFatura extends DataClass
+    implements Insertable<PagamentosFatura> {
+  final int id;
+  final int faturaId;
+  final int contaId;
+  final double valor;
+  final DateTime data;
+  const PagamentosFatura({
+    required this.id,
+    required this.faturaId,
+    required this.contaId,
+    required this.valor,
+    required this.data,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['fatura_id'] = Variable<int>(faturaId);
+    map['conta_id'] = Variable<int>(contaId);
+    map['valor'] = Variable<double>(valor);
+    map['data'] = Variable<DateTime>(data);
+    return map;
+  }
+
+  PagamentosFaturasCompanion toCompanion(bool nullToAbsent) {
+    return PagamentosFaturasCompanion(
+      id: Value(id),
+      faturaId: Value(faturaId),
+      contaId: Value(contaId),
+      valor: Value(valor),
+      data: Value(data),
+    );
+  }
+
+  factory PagamentosFatura.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PagamentosFatura(
+      id: serializer.fromJson<int>(json['id']),
+      faturaId: serializer.fromJson<int>(json['faturaId']),
+      contaId: serializer.fromJson<int>(json['contaId']),
+      valor: serializer.fromJson<double>(json['valor']),
+      data: serializer.fromJson<DateTime>(json['data']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'faturaId': serializer.toJson<int>(faturaId),
+      'contaId': serializer.toJson<int>(contaId),
+      'valor': serializer.toJson<double>(valor),
+      'data': serializer.toJson<DateTime>(data),
+    };
+  }
+
+  PagamentosFatura copyWith({
+    int? id,
+    int? faturaId,
+    int? contaId,
+    double? valor,
+    DateTime? data,
+  }) => PagamentosFatura(
+    id: id ?? this.id,
+    faturaId: faturaId ?? this.faturaId,
+    contaId: contaId ?? this.contaId,
+    valor: valor ?? this.valor,
+    data: data ?? this.data,
+  );
+  PagamentosFatura copyWithCompanion(PagamentosFaturasCompanion data) {
+    return PagamentosFatura(
+      id: data.id.present ? data.id.value : this.id,
+      faturaId: data.faturaId.present ? data.faturaId.value : this.faturaId,
+      contaId: data.contaId.present ? data.contaId.value : this.contaId,
+      valor: data.valor.present ? data.valor.value : this.valor,
+      data: data.data.present ? data.data.value : this.data,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PagamentosFatura(')
+          ..write('id: $id, ')
+          ..write('faturaId: $faturaId, ')
+          ..write('contaId: $contaId, ')
+          ..write('valor: $valor, ')
+          ..write('data: $data')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, faturaId, contaId, valor, data);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PagamentosFatura &&
+          other.id == this.id &&
+          other.faturaId == this.faturaId &&
+          other.contaId == this.contaId &&
+          other.valor == this.valor &&
+          other.data == this.data);
+}
+
+class PagamentosFaturasCompanion extends UpdateCompanion<PagamentosFatura> {
+  final Value<int> id;
+  final Value<int> faturaId;
+  final Value<int> contaId;
+  final Value<double> valor;
+  final Value<DateTime> data;
+  const PagamentosFaturasCompanion({
+    this.id = const Value.absent(),
+    this.faturaId = const Value.absent(),
+    this.contaId = const Value.absent(),
+    this.valor = const Value.absent(),
+    this.data = const Value.absent(),
+  });
+  PagamentosFaturasCompanion.insert({
+    this.id = const Value.absent(),
+    required int faturaId,
+    required int contaId,
+    required double valor,
+    required DateTime data,
+  }) : faturaId = Value(faturaId),
+       contaId = Value(contaId),
+       valor = Value(valor),
+       data = Value(data);
+  static Insertable<PagamentosFatura> custom({
+    Expression<int>? id,
+    Expression<int>? faturaId,
+    Expression<int>? contaId,
+    Expression<double>? valor,
+    Expression<DateTime>? data,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (faturaId != null) 'fatura_id': faturaId,
+      if (contaId != null) 'conta_id': contaId,
+      if (valor != null) 'valor': valor,
+      if (data != null) 'data': data,
+    });
+  }
+
+  PagamentosFaturasCompanion copyWith({
+    Value<int>? id,
+    Value<int>? faturaId,
+    Value<int>? contaId,
+    Value<double>? valor,
+    Value<DateTime>? data,
+  }) {
+    return PagamentosFaturasCompanion(
+      id: id ?? this.id,
+      faturaId: faturaId ?? this.faturaId,
+      contaId: contaId ?? this.contaId,
+      valor: valor ?? this.valor,
+      data: data ?? this.data,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (faturaId.present) {
+      map['fatura_id'] = Variable<int>(faturaId.value);
+    }
+    if (contaId.present) {
+      map['conta_id'] = Variable<int>(contaId.value);
+    }
+    if (valor.present) {
+      map['valor'] = Variable<double>(valor.value);
+    }
+    if (data.present) {
+      map['data'] = Variable<DateTime>(data.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PagamentosFaturasCompanion(')
+          ..write('id: $id, ')
+          ..write('faturaId: $faturaId, ')
+          ..write('contaId: $contaId, ')
+          ..write('valor: $valor, ')
+          ..write('data: $data')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1931,6 +2274,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CartoesTable cartoes = $CartoesTable(this);
   late final $LancamentosTable lancamentos = $LancamentosTable(this);
   late final $FaturasTable faturas = $FaturasTable(this);
+  late final $PagamentosFaturasTable pagamentosFaturas =
+      $PagamentosFaturasTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1941,6 +2286,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cartoes,
     lancamentos,
     faturas,
+    pagamentosFaturas,
   ];
 }
 
@@ -2964,6 +3310,213 @@ typedef $$FaturasTableProcessedTableManager =
       Fatura,
       PrefetchHooks Function()
     >;
+typedef $$PagamentosFaturasTableCreateCompanionBuilder =
+    PagamentosFaturasCompanion Function({
+      Value<int> id,
+      required int faturaId,
+      required int contaId,
+      required double valor,
+      required DateTime data,
+    });
+typedef $$PagamentosFaturasTableUpdateCompanionBuilder =
+    PagamentosFaturasCompanion Function({
+      Value<int> id,
+      Value<int> faturaId,
+      Value<int> contaId,
+      Value<double> valor,
+      Value<DateTime> data,
+    });
+
+class $$PagamentosFaturasTableFilterComposer
+    extends Composer<_$AppDatabase, $PagamentosFaturasTable> {
+  $$PagamentosFaturasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get faturaId => $composableBuilder(
+    column: $table.faturaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get contaId => $composableBuilder(
+    column: $table.contaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get valor => $composableBuilder(
+    column: $table.valor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PagamentosFaturasTableOrderingComposer
+    extends Composer<_$AppDatabase, $PagamentosFaturasTable> {
+  $$PagamentosFaturasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get faturaId => $composableBuilder(
+    column: $table.faturaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get contaId => $composableBuilder(
+    column: $table.contaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get valor => $composableBuilder(
+    column: $table.valor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PagamentosFaturasTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PagamentosFaturasTable> {
+  $$PagamentosFaturasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get faturaId =>
+      $composableBuilder(column: $table.faturaId, builder: (column) => column);
+
+  GeneratedColumn<int> get contaId =>
+      $composableBuilder(column: $table.contaId, builder: (column) => column);
+
+  GeneratedColumn<double> get valor =>
+      $composableBuilder(column: $table.valor, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get data =>
+      $composableBuilder(column: $table.data, builder: (column) => column);
+}
+
+class $$PagamentosFaturasTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PagamentosFaturasTable,
+          PagamentosFatura,
+          $$PagamentosFaturasTableFilterComposer,
+          $$PagamentosFaturasTableOrderingComposer,
+          $$PagamentosFaturasTableAnnotationComposer,
+          $$PagamentosFaturasTableCreateCompanionBuilder,
+          $$PagamentosFaturasTableUpdateCompanionBuilder,
+          (
+            PagamentosFatura,
+            BaseReferences<
+              _$AppDatabase,
+              $PagamentosFaturasTable,
+              PagamentosFatura
+            >,
+          ),
+          PagamentosFatura,
+          PrefetchHooks Function()
+        > {
+  $$PagamentosFaturasTableTableManager(
+    _$AppDatabase db,
+    $PagamentosFaturasTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PagamentosFaturasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PagamentosFaturasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PagamentosFaturasTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> faturaId = const Value.absent(),
+                Value<int> contaId = const Value.absent(),
+                Value<double> valor = const Value.absent(),
+                Value<DateTime> data = const Value.absent(),
+              }) => PagamentosFaturasCompanion(
+                id: id,
+                faturaId: faturaId,
+                contaId: contaId,
+                valor: valor,
+                data: data,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int faturaId,
+                required int contaId,
+                required double valor,
+                required DateTime data,
+              }) => PagamentosFaturasCompanion.insert(
+                id: id,
+                faturaId: faturaId,
+                contaId: contaId,
+                valor: valor,
+                data: data,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PagamentosFaturasTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PagamentosFaturasTable,
+      PagamentosFatura,
+      $$PagamentosFaturasTableFilterComposer,
+      $$PagamentosFaturasTableOrderingComposer,
+      $$PagamentosFaturasTableAnnotationComposer,
+      $$PagamentosFaturasTableCreateCompanionBuilder,
+      $$PagamentosFaturasTableUpdateCompanionBuilder,
+      (
+        PagamentosFatura,
+        BaseReferences<
+          _$AppDatabase,
+          $PagamentosFaturasTable,
+          PagamentosFatura
+        >,
+      ),
+      PagamentosFatura,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2978,4 +3531,6 @@ class $AppDatabaseManager {
       $$LancamentosTableTableManager(_db, _db.lancamentos);
   $$FaturasTableTableManager get faturas =>
       $$FaturasTableTableManager(_db, _db.faturas);
+  $$PagamentosFaturasTableTableManager get pagamentosFaturas =>
+      $$PagamentosFaturasTableTableManager(_db, _db.pagamentosFaturas);
 }
