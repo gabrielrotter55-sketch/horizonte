@@ -4,9 +4,10 @@ import '../../database/database_service.dart';
 import '../../repositories/cartao_repository.dart';
 import '../../repositories/conta_repository.dart';
 import '../../repositories/lancamento_repository.dart';
+import '../../shared/theme/app_colors.dart';
+import '../../shared/theme/app_spacing.dart';
+import '../../shared/theme/app_text_styles.dart';
 import '../../shared/utils/formatters.dart';
-import '../../shared/widgets/dashboard_tile.dart';
-import '../../shared/widgets/info_card.dart';
 import '../cartoes/pages/cartoes_page.dart';
 import '../categorias/pages/categorias_page.dart';
 import '../contas/pages/contas_page.dart';
@@ -15,7 +16,8 @@ class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<DashboardPage> createState() =>
+      _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
@@ -81,7 +83,8 @@ class _DashboardPageState extends State<DashboardPage> {
       }
     }
 
-    final cartoes = await _cartaoRepository.buscarTodas();
+    final cartoes =
+        await _cartaoRepository.buscarTodas();
 
     return _DashboardData(
       patrimonio: patrimonio,
@@ -92,12 +95,19 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Future<void> _atualizar() async {
+    setState(() {
+      _dadosFuture = _carregarDados();
+    });
+
+    await _dadosFuture;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Horizonte'),
-        centerTitle: false,
       ),
       body: FutureBuilder<_DashboardData>(
         future: _dadosFuture,
@@ -112,7 +122,9 @@ class _DashboardPageState extends State<DashboardPage> {
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(
+                  AppSpacing.lg,
+                ),
                 child: Text(
                   'Erro ao carregar o Dashboard:\n'
                   '${snapshot.error}',
@@ -136,238 +148,179 @@ class _DashboardPageState extends State<DashboardPage> {
               dados.receitasMes - dados.despesasMes;
 
           return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {
-                _dadosFuture = _carregarDados();
-              });
-
-              await _dadosFuture;
-            },
+            onRefresh: _atualizar,
             child: SingleChildScrollView(
               physics:
                   const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                100,
+              ),
               child: Column(
                 crossAxisAlignment:
                     CrossAxisAlignment.start,
                 children: [
+                  // =====================================
+                  // SAUDAÇÃO
+                  // =====================================
+
                   const Text(
-                    '👋 Boa noite, Gabriel',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    'Boa noite, Gabriel 👋',
+                    style: AppTextStyles.title,
                   ),
 
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xs),
 
                   const Text(
                     'Vamos conferir como estão suas finanças hoje.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
+                    style: AppTextStyles.subtitle,
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.lg),
 
-                  InfoCard(
-                    title: '💰 Seu patrimônio',
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          Formatters.moeda(
-                            dados.patrimonio,
-                          ),
-                          style: const TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${dados.quantidadeContas} '
-                          '${dados.quantidadeContas == 1 ? 'conta' : 'contas'} cadastradas',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                  // =====================================
+                  // PATRIMÔNIO
+                  // =====================================
+
+                  _PatrimonioCard(
+                    patrimonio: dados.patrimonio,
+                    quantidadeContas:
+                        dados.quantidadeContas,
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
+
+                  // =====================================
+                  // RECEITAS / DESPESAS
+                  // =====================================
 
                   Row(
                     children: [
                       Expanded(
-                        child: DashboardTile(
-                          icon: Icons.bar_chart,
-                          title: 'Resultado do mês',
-                          value: Formatters.moeda(
-                            resultadoMes,
-                          ),
-                          color: resultadoMes >= 0
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DashboardTile(
-                          icon: Icons.credit_card,
-                          title: 'Cartões',
-                          value:
-                              '${dados.quantidadeCartoes}',
-                          color: Colors.deepPurple,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DashboardTile(
+                        child: _FinanceiroCard(
+                          titulo: 'Receitas',
+                          valor: dados.receitasMes,
                           icon: Icons.arrow_downward,
-                          title: 'Receitas',
-                          value: Formatters.moeda(
-                            dados.receitasMes,
-                          ),
-                          color: Colors.green,
+                          cor: AppColors.success,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(
+                        width: AppSpacing.sm,
+                      ),
                       Expanded(
-                        child: DashboardTile(
+                        child: _FinanceiroCard(
+                          titulo: 'Despesas',
+                          valor: dados.despesasMes,
                           icon: Icons.arrow_upward,
-                          title: 'Despesas',
-                          value: Formatters.moeda(
-                            dados.despesasMes,
-                          ),
-                          color: Colors.red,
+                          cor: AppColors.danger,
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
 
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
+                  // =====================================
+                  // RESULTADO DO MÊS
+                  // =====================================
+
+                  _ResultadoCard(
+                    valor: resultadoMes,
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // =====================================
+                  // ACESSOS RÁPIDOS
+                  // =====================================
+
+                  const Text(
+                    'Organização',
+                    style: AppTextStyles.cardTitle,
+                  ),
+
+                  const SizedBox(height: AppSpacing.sm),
+
+                  _AcessoCard(
+                    icon: Icons.account_balance_outlined,
+                    titulo: 'Contas',
+                    descricao:
+                        '${dados.quantidadeContas} '
+                        '${dados.quantidadeContas == 1 ? 'conta' : 'contas'} cadastradas',
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ContasPage(),
                         ),
-                      ).then((_) {
-                        if (mounted) {
-                          setState(() {
-                            _dadosFuture =
-                                _carregarDados();
-                          });
-                        }
-                      });
-                    },
-                    child: const DashboardTile(
-                      icon: Icons.account_balance,
-                      title: 'Contas',
-                      value: 'Gerenciar contas',
-                      color: Colors.teal,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CategoriasPage(),
-                        ),
                       );
+
+                      if (mounted) {
+                        _atualizar();
+                      }
                     },
-                    child: const DashboardTile(
-                      icon: Icons.category_outlined,
-                      title: 'Categorias',
-                      value: 'Gerenciar categorias',
-                      color: Colors.indigo,
-                    ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.sm),
 
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
+                  _AcessoCard(
+                    icon: Icons.credit_card_outlined,
+                    titulo: 'Cartões',
+                    descricao:
+                        '${dados.quantidadeCartoes} '
+                        '${dados.quantidadeCartoes == 1 ? 'cartão' : 'cartões'} cadastrado'
+                        '${dados.quantidadeCartoes == 1 ? '' : 's'}',
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => CartoesPage(),
                         ),
-                      ).then((_) {
-                        if (mounted) {
-                          setState(() {
-                            _dadosFuture =
-                                _carregarDados();
-                          });
-                        }
-                      });
+                      );
+
+                      if (mounted) {
+                        _atualizar();
+                      }
                     },
-                    child: const DashboardTile(
-                      icon: Icons.credit_card,
-                      title: 'Cartões',
-                      value: 'Gerenciar cartões',
-                      color: Colors.deepPurple,
-                    ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  _AcessoCard(
+                    icon: Icons.category_outlined,
+                    titulo: 'Categorias',
+                    descricao:
+                        'Organize seus lançamentos',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CategoriasPage(),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // =====================================
+                  // RESUMO
+                  // =====================================
 
                   const Text(
                     'Resumo do mês',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyles.cardTitle,
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
 
-                  InfoCard(
-                    title: 'Movimentações',
-                    child: Column(
-                      children: [
-                        _ResumoLinha(
-                          titulo: 'Receitas',
-                          valor: Formatters.moeda(
-                            dados.receitasMes,
-                          ),
-                          positivo: true,
-                        ),
-                        const Divider(),
-                        _ResumoLinha(
-                          titulo: 'Despesas',
-                          valor: Formatters.moeda(
-                            dados.despesasMes,
-                          ),
-                          positivo: false,
-                        ),
-                        const Divider(),
-                        _ResumoLinha(
-                          titulo: 'Resultado',
-                          valor: Formatters.moeda(
-                            resultadoMes,
-                          ),
-                          positivo: resultadoMes >= 0,
-                        ),
-                      ],
-                    ),
+                  _ResumoCard(
+                    receitas: dados.receitasMes,
+                    despesas: dados.despesasMes,
+                    resultado: resultadoMes,
                   ),
                 ],
               ),
@@ -379,35 +332,74 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class _ResumoLinha extends StatelessWidget {
-  final String titulo;
-  final String valor;
-  final bool positivo;
+// =====================================================
+// CARD DE PATRIMÔNIO
+// =====================================================
 
-  const _ResumoLinha({
-    required this.titulo,
-    required this.valor,
-    required this.positivo,
+class _PatrimonioCard extends StatelessWidget {
+  final double patrimonio;
+  final int quantidadeContas;
+
+  const _PatrimonioCard({
+    required this.patrimonio,
+    required this.quantidadeContas,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 6,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.border,
+        ),
       ),
-      child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
-          Text(titulo),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: AppColors.primary,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Text(
+                'Seu patrimônio',
+                style: AppTextStyles.cardTitle,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.md),
+
           Text(
-            valor,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: positivo
-                  ? Colors.green
-                  : Colors.red,
+            Formatters.moeda(patrimonio),
+            style: AppTextStyles.value,
+          ),
+
+          const SizedBox(height: AppSpacing.xs),
+
+          Text(
+            '$quantidadeContas '
+            '${quantidadeContas == 1 ? 'conta cadastrada' : 'contas cadastradas'}',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
             ),
           ),
         ],
@@ -415,6 +407,359 @@ class _ResumoLinha extends StatelessWidget {
     );
   }
 }
+
+// =====================================================
+// RECEITAS / DESPESAS
+// =====================================================
+
+class _FinanceiroCard extends StatelessWidget {
+  final String titulo;
+  final double valor;
+  final IconData icon;
+  final Color cor;
+
+  const _FinanceiroCard({
+    required this.titulo,
+    required this.valor,
+    required this.icon,
+    required this.cor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: cor,
+                size: 21,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.sm),
+
+          Text(
+            Formatters.moeda(valor),
+            style: AppTextStyles.smallValue,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =====================================================
+// RESULTADO
+// =====================================================
+
+class _ResultadoCard extends StatelessWidget {
+  final double valor;
+
+  const _ResultadoCard({
+    required this.valor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final positivo = valor >= 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 14,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: positivo
+                  ? AppColors.success.withValues(
+                      alpha: 0.10,
+                    )
+                  : AppColors.danger.withValues(
+                      alpha: 0.10,
+                    ),
+              borderRadius:
+                  BorderRadius.circular(12),
+            ),
+            child: Icon(
+              positivo
+                  ? Icons.trending_up
+                  : Icons.trending_down,
+              color: positivo
+                  ? AppColors.success
+                  : AppColors.danger,
+            ),
+          ),
+
+          const SizedBox(width: AppSpacing.sm),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Resultado do mês',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  Formatters.moeda(valor),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =====================================================
+// ACESSO RÁPIDO
+// =====================================================
+
+class _AcessoCard extends StatelessWidget {
+  final IconData icon;
+  final String titulo;
+  final String descricao;
+  final VoidCallback onTap;
+
+  const _AcessoCard({
+    required this.icon,
+    required this.titulo,
+    required this.descricao,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 14,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.border,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius:
+                      BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.primary,
+                  size: 21,
+                ),
+              ),
+
+              const SizedBox(width: AppSpacing.md),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      descricao,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// RESUMO
+// =====================================================
+
+class _ResumoCard extends StatelessWidget {
+  final double receitas;
+  final double despesas;
+  final double resultado;
+
+  const _ResumoCard({
+    required this.receitas,
+    required this.despesas,
+    required this.resultado,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Column(
+        children: [
+          _ResumoLinha(
+            titulo: 'Receitas',
+            valor: receitas,
+            cor: AppColors.success,
+          ),
+
+          const Divider(
+            height: 20,
+          ),
+
+          _ResumoLinha(
+            titulo: 'Despesas',
+            valor: despesas,
+            cor: AppColors.textPrimary,
+          ),
+
+          const Divider(
+            height: 20,
+          ),
+
+          _ResumoLinha(
+            titulo: 'Resultado',
+            valor: resultado,
+            cor: resultado >= 0
+                ? AppColors.success
+                : AppColors.danger,
+            destaque: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResumoLinha extends StatelessWidget {
+  final String titulo;
+  final double valor;
+  final Color cor;
+  final bool destaque;
+
+  const _ResumoLinha({
+    required this.titulo,
+    required this.valor,
+    required this.cor,
+    this.destaque = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment:
+          MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          titulo,
+          style: TextStyle(
+            fontSize: destaque ? 15 : 14,
+            fontWeight: destaque
+                ? FontWeight.w600
+                : FontWeight.normal,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        Text(
+          Formatters.moeda(valor),
+          style: TextStyle(
+            fontSize: destaque ? 17 : 15,
+            fontWeight: FontWeight.bold,
+            color: cor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// =====================================================
+// DADOS
+// =====================================================
 
 class _DashboardData {
   final double patrimonio;
