@@ -62,6 +62,8 @@ class FaturaRepository {
         );
   }
 
+  /// Calcula o total de compras realizadas
+  /// dentro do ciclo da fatura.
   Future<double> calcularTotal(int faturaId) async {
     final fatura = await buscarPorId(faturaId);
 
@@ -84,8 +86,12 @@ class FaturaRepository {
             (t) =>
                 t.cartaoId.equals(fatura.cartaoId) &
                 t.receita.equals(false) &
-                t.data.isBiggerOrEqualValue(periodo.inicio) &
-                t.data.isSmallerOrEqualValue(periodo.fim),
+                t.data.isBiggerOrEqualValue(
+                  periodo.inicio,
+                ) &
+                t.data.isSmallerOrEqualValue(
+                  periodo.fim,
+                ),
           ))
         .get();
 
@@ -96,6 +102,41 @@ class FaturaRepository {
     }
 
     return total;
+  }
+
+  /// Calcula quanto já foi pago desta fatura.
+  Future<double> calcularTotalPago(int faturaId) async {
+    final pagamentos =
+        await (db.select(db.pagamentosFaturas)
+              ..where(
+                (t) => t.faturaId.equals(faturaId),
+              ))
+            .get();
+
+    double total = 0;
+
+    for (final pagamento in pagamentos) {
+      total += pagamento.valor;
+    }
+
+    return total;
+  }
+
+  /// Calcula quanto ainda falta pagar.
+  Future<double> calcularValorRestante(
+    int faturaId,
+  ) async {
+    final total = await calcularTotal(faturaId);
+
+    final pago = await calcularTotalPago(faturaId);
+
+    final restante = total - pago;
+
+    if (restante <= 0) {
+      return 0;
+    }
+
+    return restante;
   }
 
   Future<List<Lancamento>> buscarLancamentos(
@@ -122,8 +163,12 @@ class FaturaRepository {
             (t) =>
                 t.cartaoId.equals(fatura.cartaoId) &
                 t.receita.equals(false) &
-                t.data.isBiggerOrEqualValue(periodo.inicio) &
-                t.data.isSmallerOrEqualValue(periodo.fim),
+                t.data.isBiggerOrEqualValue(
+                  periodo.inicio,
+                ) &
+                t.data.isSmallerOrEqualValue(
+                  periodo.fim,
+                ),
           )
           ..orderBy([
             (t) => OrderingTerm.asc(t.data),

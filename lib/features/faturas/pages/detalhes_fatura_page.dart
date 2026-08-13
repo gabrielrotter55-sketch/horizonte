@@ -34,11 +34,9 @@ class _DetalhesFaturaPageState
   }
 
   Future<_DadosDetalhes> _carregarDados() async {
-    final cartao = await (DatabaseService
-            .instance.database
-            .select(
-              DatabaseService.instance.database.cartoes,
-            )
+    final db = DatabaseService.instance.database;
+
+    final cartao = await (db.select(db.cartoes)
           ..where(
             (t) => t.id.equals(widget.fatura.cartaoId),
           ))
@@ -54,10 +52,22 @@ class _DetalhesFaturaPageState
       widget.fatura.id,
     );
 
+    final totalPago =
+        await _faturaRepository.calcularTotalPago(
+      widget.fatura.id,
+    );
+
+    final valorRestante =
+        await _faturaRepository.calcularValorRestante(
+      widget.fatura.id,
+    );
+
     return _DadosDetalhes(
       cartao: cartao,
       lancamentos: lancamentos,
       total: total,
+      totalPago: totalPago,
+      valorRestante: valorRestante,
     );
   }
 
@@ -99,6 +109,9 @@ class _DetalhesFaturaPageState
           }
 
           final dados = snapshot.data!;
+
+          final faturaPaga =
+              dados.valorRestante <= 0;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -151,8 +164,34 @@ class _DetalhesFaturaPageState
                           ),
                           style: const TextStyle(
                             fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                            fontWeight:
+                                FontWeight.bold,
                           ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _InfoItem(
+                                titulo: 'Já pago',
+                                valor:
+                                    Formatters.moeda(
+                                  dados.totalPago,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: _InfoItem(
+                                titulo: 'Restante',
+                                valor:
+                                    Formatters.moeda(
+                                  dados.valorRestante,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 20),
@@ -185,7 +224,7 @@ class _DetalhesFaturaPageState
                           decoration: BoxDecoration(
                             borderRadius:
                                 BorderRadius.circular(12),
-                            color: widget.fatura.paga
+                            color: faturaPaga
                                 ? Colors.green.withValues(
                                     alpha: 0.1,
                                   )
@@ -196,25 +235,24 @@ class _DetalhesFaturaPageState
                           child: Row(
                             children: [
                               Icon(
-                                widget.fatura.paga
+                                faturaPaga
                                     ? Icons.check_circle
                                     : Icons.schedule,
-                                color: widget.fatura.paga
+                                color: faturaPaga
                                     ? Colors.green
                                     : Colors.orange,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                widget.fatura.paga
+                                faturaPaga
                                     ? 'Fatura paga'
                                     : 'Fatura em aberto',
                                 style: TextStyle(
                                   fontWeight:
                                       FontWeight.bold,
-                                  color:
-                                      widget.fatura.paga
-                                          ? Colors.green
-                                          : Colors.orange,
+                                  color: faturaPaga
+                                      ? Colors.green
+                                      : Colors.orange,
                                 ),
                               ),
                             ],
@@ -284,7 +322,7 @@ class _DetalhesFaturaPageState
 
                 const SizedBox(height: 24),
 
-                if (!widget.fatura.paga)
+                if (!faturaPaga)
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -296,7 +334,8 @@ class _DetalhesFaturaPageState
                             builder: (_) =>
                                 PagarFaturaPage(
                               fatura: widget.fatura,
-                              valor: dados.total,
+                              valor:
+                                  dados.valorRestante,
                             ),
                           ),
                         );
@@ -312,8 +351,8 @@ class _DetalhesFaturaPageState
                       icon: const Icon(
                         Icons.payments_outlined,
                       ),
-                      label: const Text(
-                        'Pagar fatura',
+                      label: Text(
+                        'Pagar ${Formatters.moeda(dados.valorRestante)}',
                       ),
                     ),
                   ),
@@ -326,8 +365,10 @@ class _DetalhesFaturaPageState
   }
 
   String _formatarData(DateTime data) {
-    final dia = data.day.toString().padLeft(2, '0');
-    final mes = data.month.toString().padLeft(2, '0');
+    final dia =
+        data.day.toString().padLeft(2, '0');
+    final mes =
+        data.month.toString().padLeft(2, '0');
     final ano = data.year.toString();
 
     return '$dia/$mes/$ano';
@@ -338,11 +379,15 @@ class _DadosDetalhes {
   final Cartoe cartao;
   final List<Lancamento> lancamentos;
   final double total;
+  final double totalPago;
+  final double valorRestante;
 
   const _DadosDetalhes({
     required this.cartao,
     required this.lancamentos,
     required this.total,
+    required this.totalPago,
+    required this.valorRestante,
   });
 }
 

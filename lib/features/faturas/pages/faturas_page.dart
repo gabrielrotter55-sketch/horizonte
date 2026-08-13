@@ -7,9 +7,14 @@ import '../../../repositories/fatura_repository.dart';
 import '../../../shared/utils/formatters.dart';
 import 'detalhes_fatura_page.dart';
 
-class FaturasPage extends StatelessWidget {
-  FaturasPage({super.key});
+class FaturasPage extends StatefulWidget {
+  const FaturasPage({super.key});
 
+  @override
+  State<FaturasPage> createState() => _FaturasPageState();
+}
+
+class _FaturasPageState extends State<FaturasPage> {
   final cartaoRepository = CartaoRepository(
     DatabaseService.instance.database,
   );
@@ -62,46 +67,55 @@ class FaturasPage extends StatelessWidget {
 
               final hoje = DateTime.now();
 
-              final mesReferencia = _mesReferencia(
+              final referenciaAtual = _mesReferencia(
                 hoje,
                 cartao.fechamento,
               );
 
-              return FutureBuilder<_DadosFatura>(
-                future: _carregarFatura(
+              final referenciaProxima =
+                  _proximaReferencia(
+                referenciaAtual,
+              );
+
+              return FutureBuilder<
+                  _DadosCartaoFaturas>(
+                future: _carregarDadosCartao(
                   cartao.id,
-                  mesReferencia,
+                  referenciaAtual,
+                  referenciaProxima,
                 ),
-                builder: (context, faturaSnapshot) {
-                  if (faturaSnapshot.connectionState ==
+                builder: (context, faturasSnapshot) {
+                  if (faturasSnapshot.connectionState ==
                       ConnectionState.waiting) {
                     return const Card(
                       child: Padding(
                         padding: EdgeInsets.all(20),
                         child: Center(
-                          child: CircularProgressIndicator(),
+                          child:
+                              CircularProgressIndicator(),
                         ),
                       ),
                     );
                   }
 
-                  if (faturaSnapshot.hasError) {
+                  if (faturasSnapshot.hasError) {
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          'Erro ao carregar fatura:\n'
-                          '${faturaSnapshot.error}',
+                          'Erro ao carregar faturas:\n'
+                          '${faturasSnapshot.error}',
                         ),
                       ),
                     );
                   }
 
-                  if (!faturaSnapshot.hasData) {
+                  if (!faturasSnapshot.hasData) {
                     return const SizedBox.shrink();
                   }
 
-                  final dados = faturaSnapshot.data!;
+                  final dados =
+                      faturasSnapshot.data!;
 
                   return Card(
                     margin: const EdgeInsets.only(
@@ -113,6 +127,10 @@ class FaturasPage extends StatelessWidget {
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
                         children: [
+                          // =========================
+                          // CARTÃO
+                          // =========================
+
                           Row(
                             children: [
                               const CircleAvatar(
@@ -124,7 +142,8 @@ class FaturasPage extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   cartao.nome,
-                                  style: const TextStyle(
+                                  style:
+                                      const TextStyle(
                                     fontSize: 18,
                                     fontWeight:
                                         FontWeight.bold,
@@ -135,6 +154,10 @@ class FaturasPage extends StatelessWidget {
                           ),
 
                           const SizedBox(height: 20),
+
+                          // =========================
+                          // FATURA ATUAL
+                          // =========================
 
                           const Text(
                             'Fatura atual',
@@ -147,102 +170,188 @@ class FaturasPage extends StatelessWidget {
 
                           Text(
                             Formatters.moeda(
-                              dados.total,
+                              dados.atual.total,
                             ),
                             style: const TextStyle(
                               fontSize: 30,
-                              fontWeight: FontWeight.bold,
+                              fontWeight:
+                                  FontWeight.bold,
                             ),
                           ),
 
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
 
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _InfoItem(
-                                  titulo: 'Fechamento',
-                                  valor:
-                                      'Dia ${cartao.fechamento}',
-                                ),
-                              ),
-                              Expanded(
-                                child: _InfoItem(
-                                  titulo: 'Vencimento',
-                                  valor:
-                                      'Dia ${cartao.vencimento}',
-                                ),
-                              ),
-                            ],
+                          _StatusFatura(
+                            paga: dados.atual.fatura.paga,
                           ),
 
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
 
-                          Container(
-                            width: double.infinity,
-                            padding:
-                                const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(12),
-                              color: dados.fatura.paga
-                                  ? Colors.green.withValues(
-                                      alpha: 0.1,
-                                    )
-                                  : Colors.orange.withValues(
-                                      alpha: 0.1,
-                                    ),
+                          _BotaoVerFatura(
+                            context: context,
+                            fatura:
+                                dados.atual.fatura,
+                            onReturn: () {
+                              setState(() {});
+                            },
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          const Divider(),
+
+                          const SizedBox(height: 24),
+
+                          // =========================
+                          // PRÓXIMA FATURA
+                          // =========================
+
+                          const Text(
+                            'Próxima fatura',
+                            style: TextStyle(
+                              color: Colors.grey,
                             ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  dados.fatura.paga
-                                      ? Icons.check_circle
-                                      : Icons.schedule,
-                                  color: dados.fatura.paga
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  dados.fatura.paga
-                                      ? 'Fatura paga'
-                                      : 'Fatura em aberto',
-                                  style: TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold,
-                                    color: dados.fatura.paga
-                                        ? Colors.green
-                                        : Colors.orange,
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          Text(
+                            Formatters.moeda(
+                              dados.proxima.total,
+                            ),
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            _nomeMes(
+                              referenciaProxima.mes,
+                            ),
+                            style: TextStyle(
+                              color:
+                                  Colors.grey.shade600,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          const _StatusFatura(
+                            paga: false,
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          _BotaoVerFatura(
+                            context: context,
+                            fatura:
+                                dados.proxima.fatura,
+                            onReturn: () {
+                              setState(() {});
+                            },
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          const Divider(),
+
+                          const SizedBox(height: 20),
+
+                          // =========================
+                          // HISTÓRICO
+                          // =========================
+
+                          const Text(
+                            'Histórico de faturas',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          if (dados.historico.isEmpty)
+                            const Card(
+                              child: Padding(
+                                padding:
+                                    EdgeInsets.all(16),
+                                child: Center(
+                                  child: Text(
+                                    'Nenhuma fatura anterior.',
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
 
-                          const SizedBox(height: 16),
-
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        DetalhesFaturaPage(
-                                      fatura: dados.fatura,
+                          ...dados.historico.map(
+                            (historico) {
+                              return Card(
+                                margin:
+                                    const EdgeInsets.only(
+                                  bottom: 8,
+                                ),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    child: Icon(
+                                      historico
+                                              .fatura
+                                              .paga
+                                          ? Icons
+                                              .check_circle
+                                          : Icons
+                                              .receipt_long,
                                     ),
                                   ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.receipt_long,
-                              ),
-                              label: const Text(
-                                'Ver fatura',
-                              ),
-                            ),
+                                  title: Text(
+                                    _nomeReferencia(
+                                      historico.fatura
+                                          .mesReferencia,
+                                      historico.fatura
+                                          .anoReferencia,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    historico.fatura
+                                            .paga
+                                        ? 'Fatura paga'
+                                        : 'Fatura em aberto',
+                                  ),
+                                  trailing: Text(
+                                    Formatters.moeda(
+                                      historico.total,
+                                    ),
+                                    style:
+                                        const TextStyle(
+                                      fontWeight:
+                                          FontWeight.bold,
+                                    ),
+                                  ),
+                                  onTap: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            DetalhesFaturaPage(
+                                          fatura:
+                                              historico
+                                                  .fatura,
+                                        ),
+                                      ),
+                                    );
+
+                                    if (mounted) {
+                                      setState(() {});
+                                    }
+                                  },
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -257,43 +366,147 @@ class FaturasPage extends StatelessWidget {
     );
   }
 
-  Future<_DadosFatura> _carregarFatura(
+  Future<_DadosCartaoFaturas>
+      _carregarDadosCartao(
     int cartaoId,
-    _Referencia referencia,
+    _Referencia referenciaAtual,
+    _Referencia referenciaProxima,
   ) async {
-    var fatura =
+    // =========================
+    // FATURA ATUAL
+    // =========================
+
+    var faturaAtual =
         await faturaRepository
             .buscarPorCartaoEReferencia(
       cartaoId: cartaoId,
-      mes: referencia.mes,
-      ano: referencia.ano,
+      mes: referenciaAtual.mes,
+      ano: referenciaAtual.ano,
     );
 
-    if (fatura == null) {
+    if (faturaAtual == null) {
       final id = await faturaRepository.criar(
         cartaoId: cartaoId,
-        mes: referencia.mes,
-        ano: referencia.ano,
+        mes: referenciaAtual.mes,
+        ano: referenciaAtual.ano,
       );
 
-      fatura =
+      faturaAtual =
           await faturaRepository.buscarPorId(id);
     }
 
-    if (fatura == null) {
+    if (faturaAtual == null) {
       throw Exception(
-        'Não foi possível criar a fatura.',
+        'Não foi possível criar a fatura atual.',
       );
     }
 
-    final total =
+    final totalAtual =
         await faturaRepository.calcularTotal(
-      fatura.id,
+      faturaAtual.id,
     );
 
-    return _DadosFatura(
-      fatura: fatura,
-      total: total,
+    // =========================
+    // PRÓXIMA FATURA
+    // =========================
+
+    var faturaProxima =
+        await faturaRepository
+            .buscarPorCartaoEReferencia(
+      cartaoId: cartaoId,
+      mes: referenciaProxima.mes,
+      ano: referenciaProxima.ano,
+    );
+
+    if (faturaProxima == null) {
+      final id = await faturaRepository.criar(
+        cartaoId: cartaoId,
+        mes: referenciaProxima.mes,
+        ano: referenciaProxima.ano,
+      );
+
+      faturaProxima =
+          await faturaRepository.buscarPorId(id);
+    }
+
+    if (faturaProxima == null) {
+      throw Exception(
+        'Não foi possível criar a próxima fatura.',
+      );
+    }
+
+    final totalProxima =
+        await faturaRepository.calcularTotal(
+      faturaProxima.id,
+    );
+
+    // =========================
+    // HISTÓRICO
+    // =========================
+
+    final todas =
+        await faturaRepository.buscarTodas();
+
+    final faturasDoCartao = todas.where(
+      (fatura) =>
+          fatura.cartaoId == cartaoId &&
+          !(
+            fatura.mesReferencia ==
+                referenciaAtual.mes &&
+            fatura.anoReferencia ==
+                referenciaAtual.ano
+          ) &&
+          !(
+            fatura.mesReferencia ==
+                referenciaProxima.mes &&
+            fatura.anoReferencia ==
+                referenciaProxima.ano
+          ),
+    ).toList();
+
+    faturasDoCartao.sort(
+      (a, b) {
+        final dataA = DateTime(
+          a.anoReferencia,
+          a.mesReferencia,
+        );
+
+        final dataB = DateTime(
+          b.anoReferencia,
+          b.mesReferencia,
+        );
+
+        return dataB.compareTo(dataA);
+      },
+    );
+
+    final historico =
+        <_DadosFaturaHistorico>[];
+
+    for (final fatura in faturasDoCartao) {
+      final total =
+          await faturaRepository.calcularTotal(
+        fatura.id,
+      );
+
+      historico.add(
+        _DadosFaturaHistorico(
+          fatura: fatura,
+          total: total,
+        ),
+      );
+    }
+
+    return _DadosCartaoFaturas(
+      atual: _DadosFatura(
+        fatura: faturaAtual,
+        total: totalAtual,
+      ),
+      proxima: _DadosFatura(
+        fatura: faturaProxima,
+        total: totalProxima,
+      ),
+      historico: historico,
     );
   }
 
@@ -320,6 +533,134 @@ class FaturasPage extends StatelessWidget {
       ano: data.year,
     );
   }
+
+  _Referencia _proximaReferencia(
+    _Referencia referencia,
+  ) {
+    if (referencia.mes == 12) {
+      return _Referencia(
+        mes: 1,
+        ano: referencia.ano + 1,
+      );
+    }
+
+    return _Referencia(
+      mes: referencia.mes + 1,
+      ano: referencia.ano,
+    );
+  }
+
+  String _nomeMes(int mes) {
+    const meses = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+    ];
+
+    return meses[mes - 1];
+  }
+
+  String _nomeReferencia(
+    int mes,
+    int ano,
+  ) {
+    return '${_nomeMes(mes)}/$ano';
+  }
+}
+
+class _BotaoVerFatura extends StatelessWidget {
+  final BuildContext context;
+  final Fatura fatura;
+  final VoidCallback onReturn;
+
+  const _BotaoVerFatura({
+    required this.context,
+    required this.fatura,
+    required this.onReturn,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  DetalhesFaturaPage(
+                fatura: fatura,
+              ),
+            ),
+          );
+
+          onReturn();
+        },
+        icon: const Icon(
+          Icons.receipt_long,
+        ),
+        label: const Text(
+          'Ver fatura',
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusFatura extends StatelessWidget {
+  final bool paga;
+
+  const _StatusFatura({
+    required this.paga,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: paga
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.orange.withValues(alpha: 0.1),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            paga
+                ? Icons.check_circle
+                : Icons.schedule,
+            color: paga
+                ? Colors.green
+                : Colors.orange,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            paga
+                ? 'Fatura paga'
+                : 'Fatura em aberto',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: paga
+                  ? Colors.green
+                  : Colors.orange,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Referencia {
@@ -342,35 +683,24 @@ class _DadosFatura {
   });
 }
 
-class _InfoItem extends StatelessWidget {
-  final String titulo;
-  final String valor;
+class _DadosFaturaHistorico {
+  final Fatura fatura;
+  final double total;
 
-  const _InfoItem({
-    required this.titulo,
-    required this.valor,
+  const _DadosFaturaHistorico({
+    required this.fatura,
+    required this.total,
   });
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
-      children: [
-        Text(
-          titulo,
-          style: TextStyle(
-            color: Colors.grey.shade600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          valor,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
+class _DadosCartaoFaturas {
+  final _DadosFatura atual;
+  final _DadosFatura proxima;
+  final List<_DadosFaturaHistorico> historico;
+
+  const _DadosCartaoFaturas({
+    required this.atual,
+    required this.proxima,
+    required this.historico,
+  });
 }
