@@ -74,6 +74,21 @@ class ContasPage extends StatelessWidget {
 
               const SizedBox(height: AppSpacing.md),
 
+              FutureBuilder<double>(
+                future: repository.patrimonioTotal(),
+                builder: (context, patrimonioSnapshot) {
+                  if (!patrimonioSnapshot.hasData) {
+                    return const _PatrimonioCardCarregando();
+                  }
+
+                  return _PatrimonioCard(
+                    valor: patrimonioSnapshot.data!,
+                  );
+                },
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
               ...contas.map(
                 (conta) {
                   return Padding(
@@ -128,6 +143,140 @@ class ContasPage extends StatelessWidget {
 }
 
 // =====================================================
+// CARD DO PATRIMÔNIO
+// =====================================================
+
+class _PatrimonioCard extends StatelessWidget {
+  final double valor;
+
+  const _PatrimonioCard({
+    required this.valor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final positivo = valor >= 0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(
+        AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: AppColors.primary,
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Seu patrimônio',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  Formatters.moeda(valor),
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                    color: positivo
+                        ? AppColors.success
+                        : AppColors.danger,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PatrimonioCardCarregando extends StatelessWidget {
+  const _PatrimonioCardCarregando();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(
+        AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(
+            width: 46,
+            height: 46,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Seu patrimônio',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                SizedBox(height: 6),
+                SizedBox(
+                  width: 130,
+                  height: 22,
+                  child: LinearProgressIndicator(
+                    minHeight: 6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =====================================================
 // CARD DA CONTA
 // =====================================================
 
@@ -160,7 +309,7 @@ class _ContaCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Ícone
+          // Ãcone
           Container(
             width: 46,
             height: 46,
@@ -177,7 +326,7 @@ class _ContaCard extends StatelessWidget {
 
           const SizedBox(width: AppSpacing.md),
 
-          // Informações
+          // InformaÃ§Ãµes
           Expanded(
             child: Column(
               crossAxisAlignment:
@@ -364,7 +513,7 @@ class _EstadoVazio extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
 
             const Text(
-              'Adicione sua primeira conta para começar.',
+              'Adicione sua primeira conta para comeÃ§ar.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textSecondary,

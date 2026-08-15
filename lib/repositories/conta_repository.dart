@@ -42,6 +42,16 @@ class ContaRepository {
         .go();
   }
 
+  /// Calcula o saldo atual de uma conta.
+  ///
+  /// Saldo atual =
+  /// saldo inicial
+  /// + receitas
+  /// - despesas
+  /// - pagamentos de fatura.
+  ///
+  /// Lançamentos realizados no cartão de crédito não
+  /// movimentam diretamente o saldo da conta.
   Future<double> saldoAtual(int contaId) async {
     final conta = await (db.select(db.contas)
           ..where((t) => t.id.equals(contaId)))
@@ -77,5 +87,35 @@ class ContaRepository {
     }
 
     return saldo;
+  }
+
+  /// Calcula o patrimônio total considerando todas as contas.
+  ///
+  /// Cartões de crédito não entram diretamente no patrimônio,
+  /// pois suas compras representam uma obrigação que será paga
+  /// posteriormente pela conta.
+  Future<double> patrimonioTotal() async {
+    final contas = await buscarTodas();
+
+    double total = 0;
+
+    for (final conta in contas) {
+      total += await saldoAtual(conta.id);
+    }
+
+    return total;
+  }
+
+  /// Retorna os saldos atuais de todas as contas.
+  Future<Map<int, double>> saldosAtuais() async {
+    final contas = await buscarTodas();
+
+    final saldos = <int, double>{};
+
+    for (final conta in contas) {
+      saldos[conta.id] = await saldoAtual(conta.id);
+    }
+
+    return saldos;
   }
 }

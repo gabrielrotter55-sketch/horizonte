@@ -16,13 +16,34 @@ class NavigationPage extends StatefulWidget {
 class _NavigationPageState extends State<NavigationPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const DashboardPage(),
+  final ValueNotifier<int> _dashboardRefreshNotifier =
+      ValueNotifier<int>(0);
+
+  late final List<Widget> _pages = [
+    DashboardPage(
+      refreshNotifier: _dashboardRefreshNotifier,
+    ),
     LancamentosPage(),
     const InvestimentosPage(),
     const MetasPage(),
     const ConfiguracoesPage(),
   ];
+
+  @override
+  void dispose() {
+    _dashboardRefreshNotifier.dispose();
+    super.dispose();
+  }
+
+  void _selecionarPagina(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+
+    if (index == 0) {
+      _dashboardRefreshNotifier.value++;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +54,7 @@ class _NavigationPageState extends State<NavigationPage> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onDestinationSelected: _selecionarPagina,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

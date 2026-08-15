@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../database/app_database.dart';
 import '../../../database/database_service.dart';
 import '../../../repositories/lancamento_repository.dart';
 import '../../../shared/theme/app_colors.dart';
@@ -89,6 +90,25 @@ class LancamentosPage extends StatelessWidget {
             );
           }
 
+          final ordenados =
+              List<Lancamento>.from(lancamentos)
+                ..sort(
+                  (a, b) => b.data.compareTo(a.data),
+                );
+
+          final grupos = <String, List<Lancamento>>{};
+
+          for (final lancamento in ordenados) {
+            final chave =
+                '${lancamento.data.year}-'
+                '${lancamento.data.month.toString().padLeft(2, '0')}';
+
+            grupos.putIfAbsent(
+              chave,
+              () => <Lancamento>[],
+            ).add(lancamento);
+          }
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.md,
@@ -117,43 +137,56 @@ class LancamentosPage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
 
-              ...lancamentos.map(
-                (lancamento) {
-                  return Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: AppSpacing.sm,
-                    ),
-                    child: _LancamentoCard(
-                      descricao: lancamento.descricao,
-                      valor: lancamento.valor,
-                      receita: lancamento.receita,
-                      data: _formatarData(
-                        lancamento.data,
+              for (final entrada in grupos.entries) ...[
+                _MesLancamentosHeader(
+                  mes: _formatarMesAno(
+                    entrada.value.first.data,
+                  ),
+                  quantidade: entrada.value.length,
+                ),
+
+                const SizedBox(height: AppSpacing.sm),
+
+                ...entrada.value.map(
+                  (lancamento) {
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppSpacing.sm,
                       ),
-                      onEditar: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                NovoLancamentoPage(
-                              lancamento: lancamento,
+                      child: _LancamentoCard(
+                        descricao: lancamento.descricao,
+                        valor: lancamento.valor,
+                        receita: lancamento.receita,
+                        data: _formatarData(
+                          lancamento.data,
+                        ),
+                        onEditar: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  NovoLancamentoPage(
+                                lancamento: lancamento,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      onExcluir: () {
-                        _confirmarExclusao(
-                          context,
-                          lancamento.id,
-                          lancamento.descricao,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+                          );
+                        },
+                        onExcluir: () {
+                          _confirmarExclusao(
+                            context,
+                            lancamento.id,
+                            lancamento.descricao,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: AppSpacing.md),
+              ],
             ],
           );
         },
@@ -177,7 +210,66 @@ class LancamentosPage extends StatelessWidget {
 }
 
 // =====================================================
-// CARD DO LANÇAMENTO
+// CABEÇALHO DO MÊS
+// =====================================================
+
+class _MesLancamentosHeader extends StatelessWidget {
+  final String mes;
+  final int quantidade;
+
+  const _MesLancamentosHeader({
+    required this.mes,
+    required this.quantidade,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            mes,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        Text(
+          '$quantidade '
+          '${quantidade == 1 ? 'lançamento' : 'lançamentos'}',
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _formatarMesAno(DateTime data) {
+  const meses = [
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
+  ];
+
+  return '${meses[data.month - 1]} ${data.year}';
+}
+
+// =====================================================
+// CARD DO LANÃ‡AMENTO
 // =====================================================
 
 class _LancamentoCard extends StatelessWidget {
