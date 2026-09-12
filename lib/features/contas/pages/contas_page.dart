@@ -6,6 +6,7 @@ import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/utils/formatters.dart';
 import 'nova_conta_page.dart';
+import 'transferencias_page.dart';
 
 class ContasPage extends StatelessWidget {
   ContasPage({super.key});
@@ -123,11 +124,30 @@ class ContasPage extends StatelessWidget {
                   );
                 },
               ),
+
+              const SizedBox(height: AppSpacing.sm),
+
+              const _SecaoDivisoria(),
+
+              const SizedBox(height: AppSpacing.sm),
+
+              _TransferenciasCard(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const TransferenciasPage(),
+                    ),
+                  );
+                },
+              ),
             ],
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'contas_fab',
         onPressed: () {
           Navigator.push(
             context,
@@ -137,6 +157,82 @@ class ContasPage extends StatelessWidget {
           );
         },
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// SEÇÃO DE TRANSFERÊNCIAS
+// =====================================================
+
+class _SecaoDivisoria extends StatelessWidget {
+  const _SecaoDivisoria();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(
+      height: 32,
+      color: AppColors.border,
+    );
+  }
+}
+
+class _TransferenciasCard extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _TransferenciasCard({
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        leading: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Icon(
+            Icons.swap_horiz_rounded,
+            color: AppColors.primary,
+            size: 23,
+          ),
+        ),
+        title: const Text(
+          'Transferências',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: const Text(
+          'Movimentações entre suas contas',
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.textSecondary,
+        ),
+        onTap: onPressed,
       ),
     );
   }
@@ -309,7 +405,7 @@ class _ContaCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Ãcone
+          // Ícone
           Container(
             width: 46,
             height: 46,
@@ -326,7 +422,7 @@ class _ContaCard extends StatelessWidget {
 
           const SizedBox(width: AppSpacing.md),
 
-          // InformaÃ§Ãµes
+          // Informações
           Expanded(
             child: Column(
               crossAxisAlignment:
@@ -513,7 +609,7 @@ class _EstadoVazio extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
 
             const Text(
-              'Adicione sua primeira conta para comeÃ§ar.',
+              'Adicione sua primeira conta para começar.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textSecondary,

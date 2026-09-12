@@ -2266,6 +2266,412 @@ class PagamentosFaturasCompanion extends UpdateCompanion<PagamentosFatura> {
   }
 }
 
+class $TransferenciasTable extends Transferencias
+    with TableInfo<$TransferenciasTable, Transferencia> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TransferenciasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _contaOrigemIdMeta = const VerificationMeta(
+    'contaOrigemId',
+  );
+  @override
+  late final GeneratedColumn<int> contaOrigemId = GeneratedColumn<int>(
+    'conta_origem_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contaDestinoIdMeta = const VerificationMeta(
+    'contaDestinoId',
+  );
+  @override
+  late final GeneratedColumn<int> contaDestinoId = GeneratedColumn<int>(
+    'conta_destino_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valorMeta = const VerificationMeta('valor');
+  @override
+  late final GeneratedColumn<double> valor = GeneratedColumn<double>(
+    'valor',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataMeta = const VerificationMeta('data');
+  @override
+  late final GeneratedColumn<DateTime> data = GeneratedColumn<DateTime>(
+    'data',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descricaoMeta = const VerificationMeta(
+    'descricao',
+  );
+  @override
+  late final GeneratedColumn<String> descricao = GeneratedColumn<String>(
+    'descricao',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contaOrigemId,
+    contaDestinoId,
+    valor,
+    data,
+    descricao,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'transferencias';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Transferencia> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('conta_origem_id')) {
+      context.handle(
+        _contaOrigemIdMeta,
+        contaOrigemId.isAcceptableOrUnknown(
+          data['conta_origem_id']!,
+          _contaOrigemIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contaOrigemIdMeta);
+    }
+    if (data.containsKey('conta_destino_id')) {
+      context.handle(
+        _contaDestinoIdMeta,
+        contaDestinoId.isAcceptableOrUnknown(
+          data['conta_destino_id']!,
+          _contaDestinoIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contaDestinoIdMeta);
+    }
+    if (data.containsKey('valor')) {
+      context.handle(
+        _valorMeta,
+        valor.isAcceptableOrUnknown(data['valor']!, _valorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valorMeta);
+    }
+    if (data.containsKey('data')) {
+      context.handle(
+        _dataMeta,
+        this.data.isAcceptableOrUnknown(data['data']!, _dataMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataMeta);
+    }
+    if (data.containsKey('descricao')) {
+      context.handle(
+        _descricaoMeta,
+        descricao.isAcceptableOrUnknown(data['descricao']!, _descricaoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_descricaoMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Transferencia map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Transferencia(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      contaOrigemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}conta_origem_id'],
+      )!,
+      contaDestinoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}conta_destino_id'],
+      )!,
+      valor: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}valor'],
+      )!,
+      data: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}data'],
+      )!,
+      descricao: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}descricao'],
+      )!,
+    );
+  }
+
+  @override
+  $TransferenciasTable createAlias(String alias) {
+    return $TransferenciasTable(attachedDatabase, alias);
+  }
+}
+
+class Transferencia extends DataClass implements Insertable<Transferencia> {
+  final int id;
+  final int contaOrigemId;
+  final int contaDestinoId;
+  final double valor;
+  final DateTime data;
+  final String descricao;
+  const Transferencia({
+    required this.id,
+    required this.contaOrigemId,
+    required this.contaDestinoId,
+    required this.valor,
+    required this.data,
+    required this.descricao,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['conta_origem_id'] = Variable<int>(contaOrigemId);
+    map['conta_destino_id'] = Variable<int>(contaDestinoId);
+    map['valor'] = Variable<double>(valor);
+    map['data'] = Variable<DateTime>(data);
+    map['descricao'] = Variable<String>(descricao);
+    return map;
+  }
+
+  TransferenciasCompanion toCompanion(bool nullToAbsent) {
+    return TransferenciasCompanion(
+      id: Value(id),
+      contaOrigemId: Value(contaOrigemId),
+      contaDestinoId: Value(contaDestinoId),
+      valor: Value(valor),
+      data: Value(data),
+      descricao: Value(descricao),
+    );
+  }
+
+  factory Transferencia.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Transferencia(
+      id: serializer.fromJson<int>(json['id']),
+      contaOrigemId: serializer.fromJson<int>(json['contaOrigemId']),
+      contaDestinoId: serializer.fromJson<int>(json['contaDestinoId']),
+      valor: serializer.fromJson<double>(json['valor']),
+      data: serializer.fromJson<DateTime>(json['data']),
+      descricao: serializer.fromJson<String>(json['descricao']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'contaOrigemId': serializer.toJson<int>(contaOrigemId),
+      'contaDestinoId': serializer.toJson<int>(contaDestinoId),
+      'valor': serializer.toJson<double>(valor),
+      'data': serializer.toJson<DateTime>(data),
+      'descricao': serializer.toJson<String>(descricao),
+    };
+  }
+
+  Transferencia copyWith({
+    int? id,
+    int? contaOrigemId,
+    int? contaDestinoId,
+    double? valor,
+    DateTime? data,
+    String? descricao,
+  }) => Transferencia(
+    id: id ?? this.id,
+    contaOrigemId: contaOrigemId ?? this.contaOrigemId,
+    contaDestinoId: contaDestinoId ?? this.contaDestinoId,
+    valor: valor ?? this.valor,
+    data: data ?? this.data,
+    descricao: descricao ?? this.descricao,
+  );
+  Transferencia copyWithCompanion(TransferenciasCompanion data) {
+    return Transferencia(
+      id: data.id.present ? data.id.value : this.id,
+      contaOrigemId: data.contaOrigemId.present
+          ? data.contaOrigemId.value
+          : this.contaOrigemId,
+      contaDestinoId: data.contaDestinoId.present
+          ? data.contaDestinoId.value
+          : this.contaDestinoId,
+      valor: data.valor.present ? data.valor.value : this.valor,
+      data: data.data.present ? data.data.value : this.data,
+      descricao: data.descricao.present ? data.descricao.value : this.descricao,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Transferencia(')
+          ..write('id: $id, ')
+          ..write('contaOrigemId: $contaOrigemId, ')
+          ..write('contaDestinoId: $contaDestinoId, ')
+          ..write('valor: $valor, ')
+          ..write('data: $data, ')
+          ..write('descricao: $descricao')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, contaOrigemId, contaDestinoId, valor, data, descricao);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Transferencia &&
+          other.id == this.id &&
+          other.contaOrigemId == this.contaOrigemId &&
+          other.contaDestinoId == this.contaDestinoId &&
+          other.valor == this.valor &&
+          other.data == this.data &&
+          other.descricao == this.descricao);
+}
+
+class TransferenciasCompanion extends UpdateCompanion<Transferencia> {
+  final Value<int> id;
+  final Value<int> contaOrigemId;
+  final Value<int> contaDestinoId;
+  final Value<double> valor;
+  final Value<DateTime> data;
+  final Value<String> descricao;
+  const TransferenciasCompanion({
+    this.id = const Value.absent(),
+    this.contaOrigemId = const Value.absent(),
+    this.contaDestinoId = const Value.absent(),
+    this.valor = const Value.absent(),
+    this.data = const Value.absent(),
+    this.descricao = const Value.absent(),
+  });
+  TransferenciasCompanion.insert({
+    this.id = const Value.absent(),
+    required int contaOrigemId,
+    required int contaDestinoId,
+    required double valor,
+    required DateTime data,
+    required String descricao,
+  }) : contaOrigemId = Value(contaOrigemId),
+       contaDestinoId = Value(contaDestinoId),
+       valor = Value(valor),
+       data = Value(data),
+       descricao = Value(descricao);
+  static Insertable<Transferencia> custom({
+    Expression<int>? id,
+    Expression<int>? contaOrigemId,
+    Expression<int>? contaDestinoId,
+    Expression<double>? valor,
+    Expression<DateTime>? data,
+    Expression<String>? descricao,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contaOrigemId != null) 'conta_origem_id': contaOrigemId,
+      if (contaDestinoId != null) 'conta_destino_id': contaDestinoId,
+      if (valor != null) 'valor': valor,
+      if (data != null) 'data': data,
+      if (descricao != null) 'descricao': descricao,
+    });
+  }
+
+  TransferenciasCompanion copyWith({
+    Value<int>? id,
+    Value<int>? contaOrigemId,
+    Value<int>? contaDestinoId,
+    Value<double>? valor,
+    Value<DateTime>? data,
+    Value<String>? descricao,
+  }) {
+    return TransferenciasCompanion(
+      id: id ?? this.id,
+      contaOrigemId: contaOrigemId ?? this.contaOrigemId,
+      contaDestinoId: contaDestinoId ?? this.contaDestinoId,
+      valor: valor ?? this.valor,
+      data: data ?? this.data,
+      descricao: descricao ?? this.descricao,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (contaOrigemId.present) {
+      map['conta_origem_id'] = Variable<int>(contaOrigemId.value);
+    }
+    if (contaDestinoId.present) {
+      map['conta_destino_id'] = Variable<int>(contaDestinoId.value);
+    }
+    if (valor.present) {
+      map['valor'] = Variable<double>(valor.value);
+    }
+    if (data.present) {
+      map['data'] = Variable<DateTime>(data.value);
+    }
+    if (descricao.present) {
+      map['descricao'] = Variable<String>(descricao.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TransferenciasCompanion(')
+          ..write('id: $id, ')
+          ..write('contaOrigemId: $contaOrigemId, ')
+          ..write('contaDestinoId: $contaDestinoId, ')
+          ..write('valor: $valor, ')
+          ..write('data: $data, ')
+          ..write('descricao: $descricao')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2276,6 +2682,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FaturasTable faturas = $FaturasTable(this);
   late final $PagamentosFaturasTable pagamentosFaturas =
       $PagamentosFaturasTable(this);
+  late final $TransferenciasTable transferencias = $TransferenciasTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2287,6 +2694,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     lancamentos,
     faturas,
     pagamentosFaturas,
+    transferencias,
   ];
 }
 
@@ -3517,6 +3925,225 @@ typedef $$PagamentosFaturasTableProcessedTableManager =
       PagamentosFatura,
       PrefetchHooks Function()
     >;
+typedef $$TransferenciasTableCreateCompanionBuilder =
+    TransferenciasCompanion Function({
+      Value<int> id,
+      required int contaOrigemId,
+      required int contaDestinoId,
+      required double valor,
+      required DateTime data,
+      required String descricao,
+    });
+typedef $$TransferenciasTableUpdateCompanionBuilder =
+    TransferenciasCompanion Function({
+      Value<int> id,
+      Value<int> contaOrigemId,
+      Value<int> contaDestinoId,
+      Value<double> valor,
+      Value<DateTime> data,
+      Value<String> descricao,
+    });
+
+class $$TransferenciasTableFilterComposer
+    extends Composer<_$AppDatabase, $TransferenciasTable> {
+  $$TransferenciasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get contaOrigemId => $composableBuilder(
+    column: $table.contaOrigemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get contaDestinoId => $composableBuilder(
+    column: $table.contaDestinoId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get valor => $composableBuilder(
+    column: $table.valor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get descricao => $composableBuilder(
+    column: $table.descricao,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TransferenciasTableOrderingComposer
+    extends Composer<_$AppDatabase, $TransferenciasTable> {
+  $$TransferenciasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get contaOrigemId => $composableBuilder(
+    column: $table.contaOrigemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get contaDestinoId => $composableBuilder(
+    column: $table.contaDestinoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get valor => $composableBuilder(
+    column: $table.valor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get descricao => $composableBuilder(
+    column: $table.descricao,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TransferenciasTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TransferenciasTable> {
+  $$TransferenciasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get contaOrigemId => $composableBuilder(
+    column: $table.contaOrigemId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get contaDestinoId => $composableBuilder(
+    column: $table.contaDestinoId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get valor =>
+      $composableBuilder(column: $table.valor, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get data =>
+      $composableBuilder(column: $table.data, builder: (column) => column);
+
+  GeneratedColumn<String> get descricao =>
+      $composableBuilder(column: $table.descricao, builder: (column) => column);
+}
+
+class $$TransferenciasTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TransferenciasTable,
+          Transferencia,
+          $$TransferenciasTableFilterComposer,
+          $$TransferenciasTableOrderingComposer,
+          $$TransferenciasTableAnnotationComposer,
+          $$TransferenciasTableCreateCompanionBuilder,
+          $$TransferenciasTableUpdateCompanionBuilder,
+          (
+            Transferencia,
+            BaseReferences<_$AppDatabase, $TransferenciasTable, Transferencia>,
+          ),
+          Transferencia,
+          PrefetchHooks Function()
+        > {
+  $$TransferenciasTableTableManager(
+    _$AppDatabase db,
+    $TransferenciasTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TransferenciasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TransferenciasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TransferenciasTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> contaOrigemId = const Value.absent(),
+                Value<int> contaDestinoId = const Value.absent(),
+                Value<double> valor = const Value.absent(),
+                Value<DateTime> data = const Value.absent(),
+                Value<String> descricao = const Value.absent(),
+              }) => TransferenciasCompanion(
+                id: id,
+                contaOrigemId: contaOrigemId,
+                contaDestinoId: contaDestinoId,
+                valor: valor,
+                data: data,
+                descricao: descricao,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int contaOrigemId,
+                required int contaDestinoId,
+                required double valor,
+                required DateTime data,
+                required String descricao,
+              }) => TransferenciasCompanion.insert(
+                id: id,
+                contaOrigemId: contaOrigemId,
+                contaDestinoId: contaDestinoId,
+                valor: valor,
+                data: data,
+                descricao: descricao,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TransferenciasTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TransferenciasTable,
+      Transferencia,
+      $$TransferenciasTableFilterComposer,
+      $$TransferenciasTableOrderingComposer,
+      $$TransferenciasTableAnnotationComposer,
+      $$TransferenciasTableCreateCompanionBuilder,
+      $$TransferenciasTableUpdateCompanionBuilder,
+      (
+        Transferencia,
+        BaseReferences<_$AppDatabase, $TransferenciasTable, Transferencia>,
+      ),
+      Transferencia,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3533,4 +4160,6 @@ class $AppDatabaseManager {
       $$FaturasTableTableManager(_db, _db.faturas);
   $$PagamentosFaturasTableTableManager get pagamentosFaturas =>
       $$PagamentosFaturasTableTableManager(_db, _db.pagamentosFaturas);
+  $$TransferenciasTableTableManager get transferencias =>
+      $$TransferenciasTableTableManager(_db, _db.transferencias);
 }

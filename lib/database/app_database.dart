@@ -17,13 +17,14 @@ part 'app_database.g.dart';
     Lancamentos,
     Faturas,
     PagamentosFaturas,
+    Transferencias,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -42,6 +43,10 @@ class AppDatabase extends _$AppDatabase {
 
         if (from < 5) {
           await m.createTable(pagamentosFaturas);
+        }
+
+        if (from < 6) {
+          await m.createTable(transferencias);
         }
       },
     );

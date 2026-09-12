@@ -48,7 +48,9 @@ class ContaRepository {
   /// saldo inicial
   /// + receitas
   /// - despesas
-  /// - pagamentos de fatura.
+  /// - pagamentos de fatura
+  /// - transferências enviadas
+  /// + transferências recebidas.
   ///
   /// Lançamentos realizados no cartão de crédito não
   /// movimentam diretamente o saldo da conta.
@@ -72,6 +74,20 @@ class ContaRepository {
       ))
         .get();
 
+    final transferenciasEnviadas = await (db.select(
+      db.transferencias,
+    )..where(
+        (t) => t.contaOrigemId.equals(contaId),
+      ))
+        .get();
+
+    final transferenciasRecebidas = await (db.select(
+      db.transferencias,
+    )..where(
+        (t) => t.contaDestinoId.equals(contaId),
+      ))
+        .get();
+
     double saldo = conta.saldoInicial;
 
     for (final lancamento in lancamentos) {
@@ -84,6 +100,14 @@ class ContaRepository {
 
     for (final pagamento in pagamentos) {
       saldo -= pagamento.valor;
+    }
+
+    for (final transferencia in transferenciasEnviadas) {
+      saldo -= transferencia.valor;
+    }
+
+    for (final transferencia in transferenciasRecebidas) {
+      saldo += transferencia.valor;
     }
 
     return saldo;

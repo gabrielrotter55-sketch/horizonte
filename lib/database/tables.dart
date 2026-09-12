@@ -78,3 +78,17 @@ class PagamentosFaturas extends Table {
 
   DateTimeColumn get data => dateTime()();
 }
+
+class Transferencias extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get contaOrigemId => integer()();
+
+  IntColumn get contaDestinoId => integer()();
+
+  RealColumn get valor => real()();
+
+  DateTimeColumn get data => dateTime()();
+
+  TextColumn get descricao => text()();
+}
