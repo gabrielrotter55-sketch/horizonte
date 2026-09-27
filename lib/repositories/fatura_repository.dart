@@ -85,20 +85,16 @@ class FaturaRepository {
           ..where(
             (t) =>
                 t.cartaoId.equals(fatura.cartaoId) &
-                t.receita.equals(false) &
-                t.data.isBiggerOrEqualValue(
-                  periodo.inicio,
-                ) &
-                t.data.isSmallerOrEqualValue(
-                  periodo.fim,
-                ),
+                t.data.isBiggerOrEqualValue(periodo.inicio) &
+                t.data.isSmallerOrEqualValue(periodo.fim),
           ))
         .get();
 
     double total = 0;
 
     for (final lancamento in lancamentos) {
-      total += lancamento.valor;
+      // Reembolsos/estornos lançados como receita no cartão reduzem a fatura.
+      total += lancamento.receita ? -lancamento.valor : lancamento.valor;
     }
 
     return total;
@@ -162,13 +158,8 @@ class FaturaRepository {
           ..where(
             (t) =>
                 t.cartaoId.equals(fatura.cartaoId) &
-                t.receita.equals(false) &
-                t.data.isBiggerOrEqualValue(
-                  periodo.inicio,
-                ) &
-                t.data.isSmallerOrEqualValue(
-                  periodo.fim,
-                ),
+                t.data.isBiggerOrEqualValue(periodo.inicio) &
+                t.data.isSmallerOrEqualValue(periodo.fim),
           )
           ..orderBy([
             (t) => OrderingTerm.asc(t.data),

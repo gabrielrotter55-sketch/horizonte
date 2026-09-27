@@ -216,7 +216,9 @@ class _CompromissoCard extends StatelessWidget {
           '${_tipo()} • ${DateFormat('dd/MM/yyyy', 'pt_BR').format(item.data)}'
           '${item.favorecido.isEmpty ? '' : ' • ${item.favorecido}'}',
         ),
-        trailing: PopupMenuButton<String>(
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(Formatters.moeda(item.valor), style: const TextStyle(fontWeight: FontWeight.w800)),
+          PopupMenuButton<String>(
           onSelected: (value) {
             if (value == 'pagar' && onPagar != null) onPagar!();
             if (value == 'editar') onEditar?.call();
@@ -228,6 +230,7 @@ class _CompromissoCard extends StatelessWidget {
             const PopupMenuItem(value: 'excluir', child: Text('Excluir')),
           ],
         ),
+        ],),
         isThreeLine: true,
         subtitleTextStyle: Theme.of(context).textTheme.bodySmall,
       ),
@@ -430,6 +433,7 @@ class _PagamentoCompromissoSheetState extends State<_PagamentoCompromissoSheet> 
   final _db = DatabaseService.instance.database;
   late Future<List<Conta>> _contas;
   int? _contaId;
+  bool _semConta = false;
   DateTime _dataPagamento = DateTime.now();
 
   @override
@@ -440,8 +444,8 @@ class _PagamentoCompromissoSheetState extends State<_PagamentoCompromissoSheet> 
 
   Future<void> _pagar() async {
     final contas = await _contas;
-    if (_contaId == null || contas.isEmpty) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cadastre ou selecione uma conta para registrar o pagamento.')));
+    if (!_semConta && (_contaId == null || contas.isEmpty)) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecione uma conta ou marque \"Marcar como pago\" sem descontar.')));
       return;
     }
 
@@ -458,18 +462,20 @@ class _PagamentoCompromissoSheetState extends State<_PagamentoCompromissoSheet> 
     );
     categoriaId = preferida.id;
 
-    await LancamentoRepository(_db).salvar(
-      LancamentosCompanion.insert(
-        descricao: widget.compromisso.descricao,
-        valor: widget.compromisso.valor,
-        receita: false,
-        data: _dataPagamento,
-        categoriaId: categoriaId,
-        contaId: drift.Value(_contaId!),
-        cartaoId: const drift.Value(null),
-        origem: const drift.Value('compromisso'),
-      ),
-    );
+    if (!_semConta) {
+      await LancamentoRepository(_db).salvar(
+        LancamentosCompanion.insert(
+          descricao: widget.compromisso.descricao,
+          valor: widget.compromisso.valor,
+          receita: false,
+          data: _dataPagamento,
+          categoriaId: categoriaId,
+          contaId: drift.Value(_contaId!),
+          cartaoId: const drift.Value(null),
+          origem: const drift.Value('compromisso'),
+        ),
+      );
+    }
     await _repositoryMarcarPago();
     if (mounted) Navigator.pop(context, true);
   }
@@ -498,7 +504,13 @@ class _PagamentoCompromissoSheetState extends State<_PagamentoCompromissoSheet> 
                 initialValue: _contaId,
                 decoration: const InputDecoration(labelText: 'Conta que será usada'),
                 items: contas.map((conta) => DropdownMenuItem(value: conta.id, child: Text(conta.nome))).toList(),
-                onChanged: (v) => setState(() => _contaId = v),
+                onChanged: _semConta ? null : (v) => setState(() => _contaId = v),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _semConta,
+                title: const Text('Marcar como pago sem descontar de nenhuma conta'),
+                onChanged: (v) => setState(() { _semConta = v ?? false; if (_semConta) _contaId = null; }),
               ),
               const SizedBox(height: 18),
               ListTile(

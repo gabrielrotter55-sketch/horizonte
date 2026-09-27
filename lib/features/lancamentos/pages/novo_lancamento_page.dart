@@ -41,6 +41,7 @@ class _NovoLancamentoPageState
   String _origem = 'manual';
   bool _parcelado = false;
   int _parcelas = 2;
+  bool _valorEhParcela = false;
 
   late Future<_DadosFormulario> _dadosFuture;
 
@@ -142,7 +143,8 @@ class _NovoLancamentoPageState
       return;
     }
     if (_contaId == null && _cartaoId == null && _origem != 'beneficio:vr_flash') { _mostrarErro('Selecione uma conta ou um cartão.'); return; }
-    if (_receita && _cartaoId != null) { _mostrarErro('Receitas não podem ser lançadas no cartão.'); return; }
+    // Receitas no cartão representam reembolsos/estornos e devem reduzir a fatura.
+
     if (_parcelado && (_receita || _origem == 'beneficio:vr_flash')) { _mostrarErro('Parcelamento está disponível para despesas pagas por conta ou cartão.'); return; }
 
     final antigo = widget.lancamento;
@@ -154,7 +156,23 @@ class _NovoLancamentoPageState
       if (valor > saldo) { _mostrarErro('Saldo insuficiente no VR Flash. Disponível: R\$ ${saldo.toStringAsFixed(2).replaceAll('.', ',')}'); return; }
     }
 
-    if (_editando) {
+    if (_editando && _parcelado && !_receita) {
+      // Converte um lançamento já existente em parcelado: o registro original
+      // vira a primeira parcela e as demais são criadas automaticamente.
+      await _viewModel.repository.excluir(widget.lancamento!.id);
+      final valorParcela = _valorEhParcela ? valor : valor / _parcelas;
+      if (_cartaoId != null) {
+        for (var i = 1; i <= _parcelas; i++) {
+          await _viewModel.salvar(descricao: '$descricao ($i/$_parcelas)', valor: valorParcela, receita: false, data: _somarMeses(_data, i - 1), categoriaId: _categoriaId!, contaId: null, cartaoId: _cartaoId, origem: _origem);
+        }
+      } else {
+        await _viewModel.salvar(descricao: '$descricao (1/$_parcelas)', valor: valorParcela, receita: false, data: _data, categoriaId: _categoriaId!, contaId: _contaId, cartaoId: null, origem: _origem);
+        final repo = CompromissoRepository();
+        for (var i = 2; i <= _parcelas; i++) {
+          await repo.salvar(Compromisso(id: DateTime.now().microsecondsSinceEpoch.toString() + '_$i', descricao: '$descricao ($i/$_parcelas)', valor: valorParcela, data: _somarMeses(_data, i - 1), tipo: TipoCompromisso.esporadico, categoria: categoriaSelecionada.nome, favorecido: '', status: StatusCompromisso.pendente, observacao: 'Parcela $_parcelas', pagoEm: null));
+        }
+      }
+    } else if (_editando) {
       await _viewModel.editar(id: widget.lancamento!.id, descricao: descricao, valor: valor, receita: _receita, data: _data, categoriaId: _categoriaId!, contaId: _contaId, cartaoId: _cartaoId, origem: _origem);
       if (antigoVr) {
         if (antigo!.receita) await _beneficioRepository.estornarReceita(antigo.valor); else await _beneficioRepository.estornarGasto(antigo.valor);
@@ -163,7 +181,7 @@ class _NovoLancamentoPageState
         if (_receita) await _beneficioRepository.registrarReceita(valor); else await _beneficioRepository.registrarGasto(valor);
       }
     } else if (_parcelado && !_receita) {
-      final valorParcela = valor / _parcelas;
+      final valorParcela = _valorEhParcela ? valor : valor / _parcelas;
       if (_cartaoId != null) {
         for (var i = 1; i <= _parcelas; i++) {
           final dataParcela = _somarMeses(_data, i - 1);
@@ -334,7 +352,7 @@ class _NovoLancamentoPageState
                   ),
                 ),
 
-                if (!_editando && !_receita && _origem != 'beneficio:vr_flash') ...[
+                if (!_receita && _origem != 'beneficio:vr_flash') ...[
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Parcelado'),
@@ -349,6 +367,27 @@ class _NovoLancamentoPageState
                       items: [for (var i = 2; i <= 36; i++) DropdownMenuItem(value: i, child: Text('$i parcelas'))],
                       onChanged: (v) => setState(() => _parcelas = v ?? _parcelas),
                     ),
+                  if (_parcelado) ...[
+                    const SizedBox(height: 12),
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(value: false, label: Text('Valor total')),
+                        ButtonSegment(value: true, label: Text('Valor da parcela')),
+                      ],
+                      selected: {_valorEhParcela},
+                      onSelectionChanged: (v) => setState(() => _valorEhParcela = v.first),
+                    ),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _valorEhParcela
+                            ? 'Informe quanto será cada parcela. O total será calculado automaticamente.'
+                            : 'Informe o valor total da compra. O valor de cada parcela será calculado automaticamente.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                 ],
 
@@ -384,13 +423,16 @@ class _NovoLancamentoPageState
                   SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(value: 'conta', label: Text('Conta')),
+                      ButtonSegment(value: 'cartao', label: Text('Cartão')),
                       ButtonSegment(value: 'vr', label: Text('VR Flash')),
                     ],
-                    selected: {_origem == 'beneficio:vr_flash' ? 'vr' : 'conta'},
+                    selected: {_origem == 'beneficio:vr_flash' ? 'vr' : (_cartaoId != null ? 'cartao' : 'conta')},
                     onSelectionChanged: (selection) {
                       setState(() {
                         if (selection.first == 'vr') {
                           _origem = 'beneficio:vr_flash'; _contaId = null; _cartaoId = null;
+                        } else if (selection.first == 'cartao') {
+                          _origem = 'manual'; _contaId = null; _cartaoId = dados.cartoes.isEmpty ? null : dados.cartoes.first.id;
                         } else {
                           _origem = 'manual'; _cartaoId = null;
                         }
@@ -398,11 +440,17 @@ class _NovoLancamentoPageState
                     },
                   ),
                   const SizedBox(height: 20),
-                  if (_origem != 'beneficio:vr_flash') DropdownButtonFormField<int>(
+                  if (_origem != 'beneficio:vr_flash' && _cartaoId == null) DropdownButtonFormField<int>(
                     initialValue: _contaId,
                     decoration: const InputDecoration(labelText: 'Conta', border: OutlineInputBorder()),
                     items: dados.contas.map((conta) => DropdownMenuItem<int>(value: conta.id, child: Text(conta.nome))).toList(),
                     onChanged: (value) => setState(() => _contaId = value),
+                  ),
+                  if (_origem != 'beneficio:vr_flash' && _cartaoId != null) DropdownButtonFormField<int>(
+                    initialValue: _cartaoId,
+                    decoration: const InputDecoration(labelText: 'Cartão', border: OutlineInputBorder()),
+                    items: dados.cartoes.map((cartao) => DropdownMenuItem<int>(value: cartao.id, child: Text(cartao.nome))).toList(),
+                    onChanged: (value) => setState(() => _cartaoId = value),
                   ),
                 ] else ...[
                   Align(alignment: Alignment.centerLeft, child: Text('Forma de pagamento', style: Theme.of(context).textTheme.titleSmall)),

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/backup_service.dart';
+
 import '../../services/theme_controller.dart';
 import '../categorias/pages/categorias_page.dart';
 import '../compromissos/compromissos_page.dart';
@@ -148,6 +150,10 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
     }
   }
 
+  Future<void> _abrirBackup() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => const _BackupPage()));
+  }
+
   String _temaAtual() {
     final controller = widget.themeController;
     if (controller == null) return 'Sistema';
@@ -184,6 +190,15 @@ class _ConfiguracoesPageState extends State<ConfiguracoesPage> {
             title: 'Parceiro',
             subtitle: 'Nome usado nas metas conjuntas: $_parceiro',
             onTap: _editarParceiro,
+          ),
+
+          const SizedBox(height: 22),
+          const _SecaoTitulo('Segurança dos dados'),
+          _ConfiguracaoTile(
+            icon: Icons.backup_outlined,
+            title: 'Backup e restauração',
+            subtitle: 'Salve e recupere todos os dados do Horizonte.',
+            onTap: _abrirBackup,
           ),
 
           const SizedBox(height: 22),
@@ -294,6 +309,104 @@ class _SecaoTitulo extends StatelessWidget {
         padding: const EdgeInsets.only(left: 4, bottom: 8),
         child: Text(texto, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
       );
+}
+
+
+class _BackupPage extends StatefulWidget {
+  const _BackupPage();
+
+  @override
+  State<_BackupPage> createState() => _BackupPageState();
+}
+
+class _BackupPageState extends State<_BackupPage> {
+  final _service = BackupService();
+  BackupSummary? _summary;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+  }
+
+  Future<void> _carregar() async {
+    final summary = await _service.summary();
+    if (mounted) setState(() => _summary = summary);
+  }
+
+  Future<void> _backup() async {
+    setState(() => _busy = true);
+    try {
+      final path = await _service.criarBackup();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(path == null ? 'Backup cancelado.' : 'Backup criado com sucesso.')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível criar o backup: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restaurar() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Restaurar backup?'),
+        content: const Text('A restauração substitui os dados atuais do Horizonte pelos dados do arquivo selecionado. Faça um backup atual antes de continuar.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Continuar')),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    setState(() => _busy = true);
+    try {
+      final summary = await _service.restaurarBackup();
+      if (!mounted) return;
+      if (summary != null) {
+        setState(() => _summary = summary);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backup restaurado com sucesso. Feche e abra o Horizonte para atualizar todas as telas.')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível restaurar: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = _summary;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Backup e restauração')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Row(children: [Icon(Icons.shield_outlined), SizedBox(width: 10), Text('Seus dados ficam protegidos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800))]),
+            const SizedBox(height: 8),
+            const Text('O backup inclui o banco local e as preferências do Horizonte em um arquivo independente do armazenamento privado do aplicativo.'),
+          ]))),
+          const SizedBox(height: 12),
+          if (s != null) Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Dados atuais', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            Text('Contas: ${s.contas}  •  Lançamentos: ${s.lancamentos}'),
+            Text('Cartões: ${s.cartoes}  •  Faturas: ${s.faturas}'),
+            Text('Categorias: ${s.categorias}  •  Preferências: ${s.preferencias}'),
+            Text('Transferências: ${s.transferencias}  •  Pagamentos: ${s.pagamentosFaturas}'),
+          ]))),
+          const SizedBox(height: 16),
+          FilledButton.icon(onPressed: _busy ? null : _backup, icon: const Icon(Icons.save_alt_rounded), label: const Text('Fazer backup agora')),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(onPressed: _busy ? null : _restaurar, icon: const Icon(Icons.restore_rounded), label: const Text('Restaurar backup')),
+          if (_busy) const Padding(padding: EdgeInsets.only(top: 20), child: Center(child: CircularProgressIndicator())),
+        ],
+      ),
+    );
+  }
 }
 
 class _ConfiguracaoTile extends StatelessWidget {

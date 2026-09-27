@@ -328,9 +328,9 @@ class _DetalhesFaturaPageState
                         bottom: 8,
                       ),
                       child: ListTile(
-                        leading: const CircleAvatar(
+                        leading: CircleAvatar(
                           child: Icon(
-                            Icons.shopping_bag_outlined,
+                            lancamento.receita ? Icons.undo_rounded : Icons.shopping_bag_outlined,
                           ),
                         ),
                         title: Text(
@@ -342,11 +342,10 @@ class _DetalhesFaturaPageState
                           ),
                         ),
                         trailing: Text(
-                          Formatters.moeda(
-                            lancamento.valor,
-                          ),
-                          style: const TextStyle(
+                          '${lancamento.receita ? '-' : ''}${Formatters.moeda(lancamento.valor)}',
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
+                            color: lancamento.receita ? Colors.green : null,
                           ),
                         ),
                       ),

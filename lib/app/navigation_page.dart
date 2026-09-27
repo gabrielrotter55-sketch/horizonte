@@ -22,18 +22,20 @@ class NavigationPage extends StatefulWidget {
 class _NavigationPageState extends State<NavigationPage> {
   int _currentIndex = 0;
   final ValueNotifier<int> _dashboardRefreshNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _metasRefreshNotifier = ValueNotifier<int>(0);
 
   late final List<Widget> _pages = [
     DashboardPage(refreshNotifier: _dashboardRefreshNotifier),
     LancamentosPage(),
     const InvestimentosPage(),
-    const MetasPage(),
+    MetasPage(refreshNotifier: _metasRefreshNotifier),
     ConfiguracoesPage(themeController: widget.themeController),
   ];
 
   @override
   void dispose() {
     _dashboardRefreshNotifier.dispose();
+    _metasRefreshNotifier.dispose();
     super.dispose();
   }
 
@@ -41,6 +43,8 @@ class _NavigationPageState extends State<NavigationPage> {
     setState(() => _currentIndex = index);
     if (index == 0) {
       _dashboardRefreshNotifier.value++;
+    } else if (index == 3) {
+      _metasRefreshNotifier.value++;
     }
   }
 

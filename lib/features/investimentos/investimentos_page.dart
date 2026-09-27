@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/investimento.dart';
 import '../../repositories/investimento_repository.dart';
@@ -36,11 +39,6 @@ class _InvestimentosPageState extends State<InvestimentosPage> {
   }
 
   double _brl(Investimento i, double valor) => i.internacional ? valor * _usd : valor;
-
-  double _parse(String texto) {
-    final normalizado = texto.trim().replaceAll('.', '').replaceAll(',', '.');
-    return double.tryParse(normalizado) ?? 0;
-  }
 
   List<Investimento> get _visiveis => _filtro == 'Todos'
       ? _itens
@@ -109,6 +107,8 @@ class _InvestimentosPageState extends State<InvestimentosPage> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   _ResumoCarteira(atual: atual, aplicado: aplicado, resultado: resultado, exteriorUsd: exterior, usd: _usd, onUsd: _editarUsd),
+                  const SizedBox(height: 12),
+                  _AssistenteAlocacao(itens: _itens, usd: _usd),
                   const SizedBox(height: 16),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -134,6 +134,213 @@ class _InvestimentosPageState extends State<InvestimentosPage> {
             ),
     );
   }
+}
+
+class _AssistenteAlocacao extends StatefulWidget {
+  final List<Investimento> itens;
+  final double usd;
+  const _AssistenteAlocacao({required this.itens, required this.usd});
+
+  @override
+  State<_AssistenteAlocacao> createState() => _AssistenteAlocacaoState();
+}
+
+class _AssistenteAlocacaoState extends State<_AssistenteAlocacao> {
+  static const _key = 'horizonte_alocacao_alvos_v1';
+  static const _classes = <String>['Ações', 'BDRs', 'ETFs internacionais', 'FIIs', 'Renda Fixa', 'Criptomoedas'];
+  Map<String, double> _alvos = {
+    'Ações': .25,
+    'BDRs': .15,
+    'ETFs internacionais': .05,
+    'FIIs': .35,
+    'Renda Fixa': .15,
+    'Criptomoedas': .05,
+  };
+  double _aporte = 0;
+  bool _carregando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarAlvos();
+  }
+
+  Future<void> _carregarAlvos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_key);
+    if (raw != null) {
+      try {
+        final decoded = Map<String, dynamic>.from(__decode(raw));
+        for (final classe in _classes) {
+          final value = (decoded[classe] as num?)?.toDouble();
+          if (value != null) _alvos[classe] = value;
+        }
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _carregando = false);
+  }
+
+  Map<String, dynamic> __decode(String raw) {
+    final value = jsonDecode(raw);
+    return value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
+  }
+
+  Future<void> _salvarAlvos(Map<String, double> valores) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, jsonEncode(valores));
+    if (mounted) setState(() => _alvos = valores);
+  }
+
+  Future<void> _configurar() async {
+    final resultado = await showDialog<Map<String, double>>(
+      context: context,
+      builder: (_) => _AlocacaoConfigDialog(initial: _alvos),
+    );
+    if (resultado != null) await _salvarAlvos(resultado);
+  }
+
+  Future<void> _informarAporte() async {
+    final resultado = await showDialog<double>(
+      context: context,
+      builder: (_) => _AporteDialog(initial: _aporte),
+    );
+    if (resultado != null && mounted) setState(() => _aporte = resultado);
+  }
+
+  double _brl(Investimento i, double valor) => i.internacional ? valor * widget.usd : valor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_carregando) return const Card(child: Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator()));
+    final totais = <String, double>{};
+    for (final i in widget.itens) {
+      totais[i.tipo] = (totais[i.tipo] ?? 0) + _brl(i, i.valorAtual);
+    }
+    final total = totais.values.fold<double>(0, (a, b) => a + b);
+    final percentuais = <String, double>{for (final classe in _classes) classe: total <= 0 ? 0 : (totais[classe] ?? 0) / total};
+    final deficits = <String, double>{for (final classe in _classes) classe: (_alvos[classe] ?? 0) - (percentuais[classe] ?? 0)};
+    final prioritarias = deficits.entries.where((e) => e.value > 0).toList()..sort((a, b) => b.value.compareTo(a.value));
+    final soma = _alvos.values.fold<double>(0, (a, b) => a + b);
+    final aporteTotal = _aporte;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.psychology_alt_outlined, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Assistente de alocação', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+            IconButton(tooltip: 'Configurar percentuais', onPressed: _configurar, icon: const Icon(Icons.tune_rounded)),
+          ]),
+          const SizedBox(height: 4),
+          Text('Estratégia configurável • total ${(soma * 100).toStringAsFixed(0)}%'),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(onPressed: _informarAporte, icon: const Icon(Icons.add_card_rounded), label: Text(aporteTotal > 0 ? 'Aporte: ${Formatters.moeda(aporteTotal)}' : 'Informar valor do aporte')),
+          const SizedBox(height: 10),
+          if (total <= 0)
+            const Text('Cadastre seus investimentos para calcular a distribuição atual.')
+          else ...[
+            ..._classes.map((classe) {
+              final atual = percentuais[classe]!;
+              final alvo = _alvos[classe]!;
+              final valorAporte = aporteTotal <= 0 || deficits[classe]! <= 0 ? 0.0 : aporteTotal * deficits[classe]! / prioritarias.fold<double>(0, (s, e) => s + e.value);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: Row(children: [
+                  Expanded(child: Text(classe)),
+                  Text('${(atual * 100).toStringAsFixed(1)}% → ${(alvo * 100).toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  if (valorAporte > 0) ...[const SizedBox(width: 8), Text(Formatters.moeda(valorAporte), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w800))],
+                ]),
+              );
+            }),
+            const Divider(),
+            if (prioritarias.isEmpty)
+              const Text('A carteira está dentro ou acima dos percentuais configurados.')
+            else ...[
+              Text('Prioridade de rebalanceamento: ${prioritarias.first.key}', style: const TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              ...prioritarias.take(3).map((entry) {
+                final candidatos = widget.itens.where((i) => i.tipo == entry.key).toList()..sort((a, b) => a.rentabilidade.compareTo(b.rentabilidade));
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('${entry.key}: ${(entry.value * 100).toStringAsFixed(1)} p.p. abaixo do alvo. ${candidatos.isEmpty ? 'Nenhum ativo cadastrado nesta classe.' : 'Possíveis ativos: ${candidatos.take(3).map((i) => i.ticker.isEmpty ? i.nome : i.ticker).join(', ')}.'}'),
+                );
+              }),
+              const Text('Os candidatos são apenas uma leitura dos dados cadastrados e não representam garantia de desempenho futuro.', style: TextStyle(fontSize: 12)),
+            ],
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+class _AlocacaoConfigDialog extends StatefulWidget {
+  final Map<String, double> initial;
+  const _AlocacaoConfigDialog({required this.initial});
+  @override
+  State<_AlocacaoConfigDialog> createState() => _AlocacaoConfigDialogState();
+}
+
+class _AlocacaoConfigDialogState extends State<_AlocacaoConfigDialog> {
+  late final Map<String, TextEditingController> _controllers;
+  static const classes = _AssistenteAlocacaoState._classes;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = {for (final c in classes) c: TextEditingController(text: ((widget.initial[c] ?? 0) * 100).toStringAsFixed(1).replaceAll('.', ','))};
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) controller.dispose();
+    super.dispose();
+  }
+
+  double _parse(String value) => double.tryParse(value.trim().replaceAll('.', '').replaceAll(',', '.')) ?? 0;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Percentuais da estratégia'),
+    content: SingleChildScrollView(child: Column(children: [
+      for (final classe in classes) TextField(controller: _controllers[classe], keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: classe, suffixText: '%')),
+    ])),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+      FilledButton(onPressed: () {
+        final values = {for (final classe in classes) classe: _parse(_controllers[classe]!.text) / 100};
+        final total = values.values.fold<double>(0, (a, b) => a + b);
+        if ((total - 1).abs() > .0001) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Os percentuais precisam totalizar 100%. Total atual: ${(total * 100).toStringAsFixed(1)}%.')));
+          return;
+        }
+        Navigator.pop(context, values);
+      }, child: const Text('Salvar')),
+    ],
+  );
+}
+
+class _AporteDialog extends StatefulWidget {
+  final double initial;
+  const _AporteDialog({required this.initial});
+  @override
+  State<_AporteDialog> createState() => _AporteDialogState();
+}
+
+class _AporteDialogState extends State<_AporteDialog> {
+  late final TextEditingController _controller;
+  @override
+  void initState() { super.initState(); _controller = TextEditingController(text: widget.initial > 0 ? widget.initial.toStringAsFixed(2).replaceAll('.', ',') : ''); }
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Valor do próximo aporte'),
+    content: TextField(controller: _controller, autofocus: true, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(prefixText: 'R\$ ', labelText: 'Quanto você vai aportar?')),
+    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), FilledButton(onPressed: () { final v = double.tryParse(_controller.text.trim().replaceAll('.', '').replaceAll(',', '.')) ?? 0; if (v >= 0) Navigator.pop(context, v); }, child: const Text('Usar'))],
+  );
 }
 
 class _ResumoCarteira extends StatelessWidget {

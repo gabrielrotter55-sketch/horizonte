@@ -82,7 +82,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final resumo = await _lancamentos.resumoMensal(mes: agora.month, ano: agora.year);
     final lancamentos = await _lancamentos.buscarTodas();
     lancamentos.sort((a, b) => b.data.compareTo(a.data));
-    final proximo = await _compromissos.proximo();
+    final proximos = await _compromissos.proximos(limite: 3);
 
     return _DashboardData(
       saldoAtual: saldoAtual,
@@ -101,7 +101,7 @@ class _DashboardPageState extends State<DashboardPage> {
       quantidadeContas: contas.length,
       quantidadeLancamentos: lancamentos.length,
       ultimos: lancamentos.take(4).toList(),
-      proximoCompromisso: proximo,
+      proximosCompromissos: proximos,
     );
   }
 
@@ -179,8 +179,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 12),
 
-                _CompromissoDashboardCard(
-                  item: d.proximoCompromisso,
+                _CompromissosDashboardCompact(
+                  itens: d.proximosCompromissos,
                   onTap: () => _abrir(const CompromissosPage()),
                 ),
                 const SizedBox(height: 12),
@@ -330,62 +330,36 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _CompromissoDashboardCard extends StatelessWidget {
-  final Compromisso? item;
+class _CompromissosDashboardCompact extends StatelessWidget {
+  final List<Compromisso> itens;
   final VoidCallback onTap;
-  const _CompromissoDashboardCard({required this.item, required this.onTap});
+  const _CompromissosDashboardCompact({required this.itens, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    if (item == null) {
-      return Card(
-        child: ListTile(
-          onTap: onTap,
-          leading: CircleAvatar(
-            backgroundColor: AppColors.success.withValues(alpha: .12),
-            child: const Icon(Icons.check_rounded, color: AppColors.success),
-          ),
-          title: const Text('Nenhum compromisso próximo', style: TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: const Text('Você está em dia por enquanto.'),
-          trailing: const Icon(Icons.chevron_right_rounded),
-        ),
-      );
-    }
-
-    final hoje = DateTime.now();
-    final dataBase = DateTime(hoje.year, hoje.month, hoje.day);
-    final dataItem = DateTime(item!.data.year, item!.data.month, item!.data.day);
-    final dias = dataItem.difference(dataBase).inDays;
-    final vencido = dias < 0;
-    final cor = vencido ? AppColors.danger : (dias <= 3 ? Colors.orange : Theme.of(context).colorScheme.primary);
-
-    String prazo;
-    if (vencido) {
-      prazo = 'Vencido';
-    } else if (dias == 0) {
-      prazo = 'Vence hoje';
-    } else if (dias == 1) {
-      prazo = 'Vence amanhã';
-    } else {
-      prazo = 'Vence em $dias dias';
-    }
-
     return Card(
-      child: ListTile(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: cor.withValues(alpha: .12),
-          child: Icon(Icons.event_note_outlined, color: cor),
-        ),
-        title: Text('Próximo compromisso', style: Theme.of(context).textTheme.bodySmall),
-        subtitle: Text(item!.descricao, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(Formatters.moeda(item!.valor), style: const TextStyle(fontWeight: FontWeight.w900)),
-            Text(prazo, style: TextStyle(fontSize: 11, color: cor, fontWeight: FontWeight.w700)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Expanded(child: Text('Próximos compromissos', style: TextStyle(fontWeight: FontWeight.w800))),
+              TextButton(onPressed: onTap, child: const Text('Ver todos')),
+            ]),
+            if (itens.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Text('Nenhum compromisso próximo.'))
+            else ...itens.map((item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Row(children: [
+                const Icon(Icons.event_note_outlined, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text('${DateFormat('dd/MM', 'pt_BR').format(item.data)} • ${item.descricao}', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 8),
+                Text(Formatters.moeda(item.valor), style: const TextStyle(fontWeight: FontWeight.w700)),
+              ]),
+            )),
+          ]),
         ),
       ),
     );
@@ -640,7 +614,7 @@ class _DashboardData {
   final int quantidadeContas;
   final int quantidadeLancamentos;
   final List<Lancamento> ultimos;
-  final Compromisso? proximoCompromisso;
+  final List<Compromisso> proximosCompromissos;
 
   const _DashboardData({
     required this.saldoAtual,
@@ -659,6 +633,6 @@ class _DashboardData {
     required this.quantidadeContas,
     required this.quantidadeLancamentos,
     required this.ultimos,
-    required this.proximoCompromisso,
+    required this.proximosCompromissos,
   });
 }

@@ -40,7 +40,11 @@ class MetaAgrupamentoRepository {
   Future<void> salvar(MetaAgrupamento grupo) async {
     final grupos = await buscarTodos();
     final i = grupos.indexWhere((g) => g.id == grupo.id);
-    if (i >= 0) grupos[i] = grupo; else grupos.add(grupo);
+    if (i >= 0) {
+      grupos[i] = grupo;
+    } else {
+      grupos.add(grupo);
+    }
     await _persistir(grupos);
   }
 

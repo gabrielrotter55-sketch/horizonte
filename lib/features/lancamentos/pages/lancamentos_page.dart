@@ -70,6 +70,9 @@ class _LancamentosPageState extends State<LancamentosPage> {
   }
 
   bool _corresponde(Lancamento item) {
+    // O histórico principal mostra somente lançamentos até hoje. Parcelas futuras
+    // continuam salvas no banco e podem ser consultadas usando o filtro de datas.
+    if (_dataInicial == null && _dataFinal == null && item.data.isAfter(DateTime.now())) return false;
     if (_tipo == 1 && !item.receita) return false;
     if (_tipo == 2 && item.receita) return false;
     if (!_dataDentro(item.data)) return false;
@@ -214,7 +217,11 @@ class _LancamentosPageState extends State<LancamentosPage> {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final todos = snapshot.data!;
-          final filtrados = todos.where(_corresponde).toList()..sort((a, b) => b.data.compareTo(a.data));
+          final filtrados = todos.where(_corresponde).toList()..sort((a, b) {
+            final porData = b.data.compareTo(a.data);
+            if (porData != 0) return porData;
+            return b.id.compareTo(a.id);
+          });
           final grupos = <String, List<Lancamento>>{};
           for (final item in filtrados) {
             final chave = '${item.data.year}-${item.data.month.toString().padLeft(2, '0')}';
@@ -291,13 +298,17 @@ class _LancamentoCard extends StatelessWidget {
   final VoidCallback onEditar;
   final VoidCallback onExcluir;
   const _LancamentoCard({required this.descricao, required this.valor, required this.receita, required this.data, required this.detalhe, required this.onEditar, required this.onExcluir});
-  @override Widget build(BuildContext context) => Card(child: ListTile(
+  @override
+  Widget build(BuildContext context) => Card(child: ListTile(
     leading: CircleAvatar(child: Icon(receita ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded)),
-    title: Text(descricao, maxLines: 1, overflow: TextOverflow.ellipsis),
+    title: Text(descricao, maxLines: 2, overflow: TextOverflow.ellipsis),
     subtitle: Text(detalhe, maxLines: 2, overflow: TextOverflow.ellipsis),
-    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-      Text(Formatters.moeda(valor), style: const TextStyle(fontWeight: FontWeight.w800)),
-      PopupMenuButton<String>(onSelected: (v) { if (v == 'editar') onEditar(); else onExcluir(); }, itemBuilder: (_) => const [PopupMenuItem(value: 'editar', child: Text('Editar')), PopupMenuItem(value: 'excluir', child: Text('Excluir'))]),
-    ]),
+    trailing: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 150),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Flexible(child: Text(Formatters.moeda(valor), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800))),
+        PopupMenuButton<String>(onSelected: (v) { if (v == 'editar') onEditar(); else onExcluir(); }, itemBuilder: (_) => const [PopupMenuItem(value: 'editar', child: Text('Editar')), PopupMenuItem(value: 'excluir', child: Text('Excluir'))]),
+      ]),
+    ),
   ));
 }

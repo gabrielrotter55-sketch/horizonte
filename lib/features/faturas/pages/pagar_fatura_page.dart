@@ -33,8 +33,15 @@ class _PagarFaturaPageState
       _pagamentoFaturaRepository;
 
   int? _contaSelecionada;
+  late final TextEditingController _valorController;
 
   bool _pagando = false;
+
+  @override
+  void dispose() {
+    _valorController.dispose();
+    super.dispose();
+  }
 
   late Future<List<_ContaPagamento>> _contasFuture;
   late Future<double> _valorRestanteFuture;
@@ -53,6 +60,7 @@ class _PagarFaturaPageState
         _faturaRepository.calcularValorRestante(
       widget.fatura.id,
     );
+    _valorController = TextEditingController();
 
     _contasFuture = _carregarContas();
   }
@@ -83,6 +91,15 @@ class _PagarFaturaPageState
   Future<void> _confirmarPagamento(
     double valorRestante,
   ) async {
+    if (_valorController.text.trim().isEmpty) {
+      _valorController.text = valorRestante.toStringAsFixed(2).replaceAll('.', ',');
+    }
+    final valorTexto = _valorController.text.replaceAll('.', '').replaceAll(',', '.');
+    final valorPagamento = double.tryParse(valorTexto) ?? 0;
+    if (valorPagamento <= 0 || valorPagamento > valorRestante + 0.005) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Informe um valor válido, até o restante da fatura.')));
+      return;
+    }
     if (valorRestante <= 0) {
       if (!mounted) return;
 
@@ -130,7 +147,7 @@ class _PagarFaturaPageState
       conta.id,
     );
 
-    if (saldo < valorRestante) {
+    if (saldo < valorPagamento) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -154,7 +171,7 @@ class _PagarFaturaPageState
             'Confirmar pagamento',
           ),
           content: Text(
-            'Deseja pagar ${Formatters.moeda(valorRestante)} '
+            'Deseja pagar ${Formatters.moeda(valorPagamento)} '
             'usando a conta "${conta!.nome}"?',
           ),
           actions: [
@@ -188,7 +205,7 @@ class _PagarFaturaPageState
         await _pagamentoFaturaRepository.registrar(
           faturaId: widget.fatura.id,
           contaId: conta!.id,
-          valor: valorRestante,
+          valor: valorPagamento,
         );
 
         await (_db.update(_db.faturas)
@@ -197,7 +214,7 @@ class _PagarFaturaPageState
               ))
             .write(
           FaturasCompanion(
-            paga: const Value(true),
+            paga: Value(valorPagamento >= valorRestante - 0.005),
             dataPagamento:
                 Value(DateTime.now()),
           ),
@@ -295,9 +312,10 @@ class _PagarFaturaPageState
               final contas = snapshot.data ?? [];
 
               if (contas.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'Nenhuma conta cadastrada.',
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text('Nenhuma conta cadastrada. Você ainda pode registrar o pagamento parcial apenas com uma conta depois de cadastrá-la.'),
                   ),
                 );
               }
@@ -398,6 +416,17 @@ class _PagarFaturaPageState
                           ),
                         ),
 
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: _valorController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Quanto você quer pagar agora?',
+                            prefixText: 'R\$ ',
+                            helperText: 'Restante: ${Formatters.moeda(valorRestante)}',
+                          ),
+                        ),
+
                         const SizedBox(height: 24),
 
                         const Text(
@@ -418,7 +447,7 @@ class _PagarFaturaPageState
 
                             final saldoSuficiente =
                                 item.saldo >=
-                                    valorRestante;
+                                    (double.tryParse(_valorController.text.replaceAll('.', '').replaceAll(',', '.')) ?? valorRestante);
 
                             return Card(
                               margin:

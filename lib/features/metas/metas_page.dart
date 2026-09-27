@@ -9,13 +9,16 @@ import '../../repositories/meta_agrupamento_repository.dart';
 import '../../repositories/meta_repository.dart';
 import '../../repositories/meta_deposito_repository.dart';
 import '../../repositories/conta_repository.dart';
+import '../../repositories/fgts_repository.dart';
 import '../../database/database_service.dart';
 import '../../shared/theme/app_colors.dart';
 import '../../shared/utils/formatters.dart';
 import '../../services/financeiro_notifier.dart';
 
 class MetasPage extends StatefulWidget {
-  const MetasPage({super.key});
+  final ValueNotifier<int>? refreshNotifier;
+
+  const MetasPage({super.key, this.refreshNotifier});
 
   @override
   State<MetasPage> createState() => _MetasPageState();
@@ -31,12 +34,35 @@ class _MetasPageState extends State<MetasPage> {
   String _usuario = 'Gabriel';
   String _parceiro = 'Natália';
   List<MetaAgrupamento> _grupos = [];
+  double _fgtsTotal = 0;
 
   @override
   void initState() {
     super.initState();
+    widget.refreshNotifier?.addListener(_onRefreshRequested);
     _carregar();
   }
+
+  void _onRefreshRequested() {
+    _carregar();
+  }
+
+  @override
+  void didUpdateWidget(covariant MetasPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshNotifier != widget.refreshNotifier) {
+      oldWidget.refreshNotifier?.removeListener(_onRefreshRequested);
+      widget.refreshNotifier?.addListener(_onRefreshRequested);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.refreshNotifier?.removeListener(_onRefreshRequested);
+    super.dispose();
+  }
+
+  Future<void> recarregar() => _carregar();
 
   Future<void> _carregar() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +70,7 @@ class _MetasPageState extends State<MetasPage> {
     final parceiro = prefs.getString('horizonte_nome_parceiro_v1') ?? 'Natália';
     final metas = await _repository.buscarTodas();
     final grupos = await _agrupamentoRepository.buscarTodos();
+    final fgts = await FgtsRepository().buscar();
     // O saldo da meta é um ativo separado: aportes reais reduzem a conta de origem,
     // rendimentos aumentam a meta e saldos históricos não movimentam contas.
     for (final meta in metas) {
@@ -59,6 +86,7 @@ class _MetasPageState extends State<MetasPage> {
       _usuario = usuario;
       _parceiro = parceiro;
       _grupos = grupos;
+      _fgtsTotal = fgts.total;
       _carregando = false;
     });
   }
@@ -184,6 +212,13 @@ class _MetasPageState extends State<MetasPage> {
                 onTap: () => Navigator.of(sheetContext).pop(_AgrupamentoEscolha.individual(item)),
               )),
             ],
+            if (_fgtsTotal > 0)
+              ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.account_balance_rounded)),
+                title: const Text('Agrupar esta meta com o FGTS'),
+                subtitle: Text('FGTS disponível: ${Formatters.moeda(_fgtsTotal)}'),
+                onTap: () => Navigator.of(sheetContext).pop(_AgrupamentoEscolha.fgts()),
+              ),
             if (grupos.isNotEmpty) ...[
               const Padding(padding: EdgeInsets.fromLTRB(8, 16, 8, 4), child: Text('Adicionar a um grupo existente', style: TextStyle(fontWeight: FontWeight.w700))),
               ...grupos.map((grupo) {
@@ -193,7 +228,7 @@ class _MetasPageState extends State<MetasPage> {
                 return ListTile(
                   leading: const CircleAvatar(child: Icon(Icons.link_rounded)),
                   title: Text(grupo.nome),
-                  subtitle: Text('${itens.length} metas • ${Formatters.moeda(total)}${pertence ? ' • já participa' : ''}'),
+                  subtitle: Text('${itens.length} metas • ${Formatters.moeda(total)}${grupo.incluiFgts ? ' • FGTS incluído' : ''}${pertence ? ' • já participa' : ''}'),
                   enabled: !pertence,
                   onTap: pertence ? null : () => Navigator.of(sheetContext).pop(_AgrupamentoEscolha.grupo(grupo.id, grupo.nome)),
                 );
@@ -205,7 +240,21 @@ class _MetasPageState extends State<MetasPage> {
     );
     if (escolha == null || !mounted) return;
 
-    if (escolha.grupoId != null) {
+    if (escolha.fgts) {
+      final disponiveis = grupos.where((g) => !g.incluiFgts).toList();
+      if (disponiveis.isEmpty) {
+        final nome = await showDialog<String>(context: context, builder: (_) => const _NomeGrupoDialog(nomeInicial: ''));
+        if (nome != null && nome.trim().isNotEmpty) {
+          await _agrupamentoRepository.salvar(MetaAgrupamento(id: DateTime.now().microsecondsSinceEpoch.toString(), nome: nome.trim(), metaIds: [meta.id], incluiFgts: true));
+        }
+      } else {
+        final grupo = await showModalBottomSheet<MetaAgrupamento>(context: context, showDragHandle: true, builder: (_) => ListView(shrinkWrap: true, children: [
+          const Padding(padding: EdgeInsets.all(16), child: Text('Escolha o grupo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+          ...disponiveis.map((g) => ListTile(title: Text(g.nome), subtitle: Text('${g.metaIds.length} metas'), onTap: () => Navigator.pop(context, g))),
+        ]));
+        if (grupo != null) await _agrupamentoRepository.salvar(grupo.copyWith(incluiFgts: true));
+      }
+    } else if (escolha.grupoId != null) {
       final grupo = grupos.firstWhere((g) => g.id == escolha.grupoId);
       if (!grupo.metaIds.contains(meta.id)) {
         await _agrupamentoRepository.salvar(grupo.copyWith(metaIds: [...grupo.metaIds, meta.id]));
@@ -345,7 +394,6 @@ class _MetasPageState extends State<MetasPage> {
 
   Future<void> _sincronizarAcumulado(String metaId) async {
     final metas = await _repository.buscarTodas();
-    final grupos = await _agrupamentoRepository.buscarTodos();
     final encontrados = metas.where((item) => item.id == metaId).toList();
     final meta = encontrados.isEmpty ? null : encontrados.first;
     if (meta == null) return;
@@ -414,7 +462,7 @@ class _MetasPageState extends State<MetasPage> {
                       _ResumoMetas(metas: _metas),
                       if (_grupos.isNotEmpty) ...[
                         const SizedBox(height: 12),
-                        _GruposMetas(metas: _metas, grupos: _grupos),
+                        _GruposMetas(metas: _metas, grupos: _grupos, fgtsTotal: _fgtsTotal),
                       ],
                       const SizedBox(height: 20),
                       ..._metas.map(
@@ -449,16 +497,19 @@ class _AgrupamentoEscolha {
   final MetaFinanceira? meta;
   final String? grupoId;
   final String? grupoNome;
-  const _AgrupamentoEscolha._({this.meta, this.grupoId, this.grupoNome});
+  final bool fgts;
+  const _AgrupamentoEscolha._({this.meta, this.grupoId, this.grupoNome, this.fgts = false});
   factory _AgrupamentoEscolha.individual(MetaFinanceira meta) => _AgrupamentoEscolha._(meta: meta);
   factory _AgrupamentoEscolha.grupo(String id, String nome) => _AgrupamentoEscolha._(grupoId: id, grupoNome: nome);
+  factory _AgrupamentoEscolha.fgts() => const _AgrupamentoEscolha._(fgts: true);
 }
 
 class _GruposMetas extends StatelessWidget {
   final List<MetaFinanceira> metas;
   final List<MetaAgrupamento> grupos;
+  final double fgtsTotal;
 
-  const _GruposMetas({required this.metas, required this.grupos});
+  const _GruposMetas({required this.metas, required this.grupos, required this.fgtsTotal});
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +533,7 @@ class _GruposMetas extends StatelessWidget {
             ...gruposComMetas.map((entry) {
               final itens = entry.itens;
               final grupo = entry.grupo;
-              final total = itens.fold<double>(0, (s, item) => s + item.acumulado);
+              final total = itens.fold<double>(0, (s, item) => s + item.acumulado) + (grupo.incluiFgts ? fgtsTotal : 0);
               final objetivo = itens.fold<double>(0, (s, item) => s + item.objetivo);
               final nome = grupo.nome;
               return Padding(
@@ -491,7 +542,7 @@ class _GruposMetas extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: const CircleAvatar(child: Icon(Icons.link_rounded)),
                   title: Text(nome, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text('${itens.length} metas • ${Formatters.moeda(total)} de ${Formatters.moeda(objetivo)}'),
+                  subtitle: Text('${itens.length} metas${grupo.incluiFgts ? ' + FGTS' : ''} • ${Formatters.moeda(total)} de ${Formatters.moeda(objetivo + (grupo.incluiFgts ? fgtsTotal : 0))}'),
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(Formatters.moeda(total), style: const TextStyle(fontWeight: FontWeight.w900)),
                   PopupMenuButton<String>(
@@ -974,7 +1025,6 @@ class _MetaFormSheetState extends State<_MetaFormSheet> {
   bool _conjunta = false;
   String _usuario = 'Gabriel';
   String _parceiro = 'Natália';
-  List<MetaAgrupamento> _grupos = [];
   late final TextEditingController _gabrielInicial;
   late final TextEditingController _nataliaInicial;
   late final TextEditingController _rendimentoInicial;
