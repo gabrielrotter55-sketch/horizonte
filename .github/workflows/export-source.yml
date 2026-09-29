@@ -1,0 +1,16 @@
+name: Export source
+on:
+  push:
+    branches: [v17-build-base]
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create source zip
+        run: zip -r horizonte_V16_GITHUB_SOURCE.zip . -x '.git/*' '.github/*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: horizonte-V16-GITHUB-SOURCE
+          path: horizonte_V16_GITHUB_SOURCE.zip
+          retention-days: 1
